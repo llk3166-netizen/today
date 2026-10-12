@@ -1,0 +1,21 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+coverage/
+
+# Vercel local project metadata
+.vercel/
+**/.vercel/
+
+# Local environment and API configuration
+.env
+.env.*
+!.env.example
+dist/naver-maps-config.js
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
