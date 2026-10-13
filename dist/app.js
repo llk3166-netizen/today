@@ -114,6 +114,13 @@
     }
   }
 
+  window.renderRecommendations = renderRecommendations;
   window.render = renderRecommendations;
   window.shuffle = renderRecommendations;
+  window.go = function goToScreen(id) {
+    document.querySelectorAll(".screen").forEach((screen) => screen.classList.remove("active"));
+    document.getElementById(id)?.classList.add("active");
+    window.scrollTo(0, 0);
+    if (id === "results") renderRecommendations();
+  };
 })();
