@@ -1,4 +1,4 @@
 {
-  "buildCommand": "node scripts/generate-naver-maps-config.mjs",
+  "buildCommand": "node scripts/generate-google-maps-config.mjs",
   "outputDirectory": "dist"
 }

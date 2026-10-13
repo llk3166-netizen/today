@@ -13,6 +13,7 @@ coverage/
 .env.*
 !.env.example
 dist/naver-maps-config.js
+dist/google-maps-config.js
 
 # Editor and operating-system files
 .DS_Store
