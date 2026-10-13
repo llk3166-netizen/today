@@ -1,4 +1,6 @@
-const NAVER_LOCAL_SEARCH_URL = "https://openapi.naver.com/v1/search/local.json";
+// NAVER Search API is now provided through NAVER API HUB. The route and
+// authentication header names differ from the legacy NAVER Developers API.
+const NAVER_API_HUB_LOCAL_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/search/v1/local";
 
 function cleanText(value) {
   return String(value ?? "")
@@ -11,7 +13,10 @@ function cleanText(value) {
 
 function coordinate(value) {
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed / 10000000 : null;
+  if (!Number.isFinite(parsed)) return null;
+  // API HUB returns WGS84 coordinates. Existing results may use the scaled
+  // integer representation, while future responses can be decimal degrees.
+  return Math.abs(parsed) > 1000 ? parsed / 10000000 : parsed;
 }
 
 function cleanList(value, limit = 3) {
@@ -38,9 +43,7 @@ module.exports = async function handler(req, res) {
   const budget = cleanText(req.query.budget).slice(0, 30);
   const purpose = cleanText(req.query.purpose).slice(0, 30);
   const waiting = cleanText(req.query.waiting).slice(0, 30);
-  // Support both the app-specific names and the names mirroring Naver's
-  // required HTTP headers, so deployments remain compatible with existing
-  // Vercel environment-variable configuration.
+  // Values are issued by NAVER API HUB's Application > 인증 정보 screen.
   const clientId = process.env.NAVER_SEARCH_CLIENT_ID || process.env.X_NAVER_CLIENT_ID;
   const clientSecret = process.env.NAVER_SEARCH_CLIENT_SECRET || process.env.X_NAVER_CLIENT_SECRET;
 
@@ -59,18 +62,22 @@ module.exports = async function handler(req, res) {
   try {
     const searches = await Promise.all(requestedMenus.map(async (menu) => {
       const query = `${area} ${searchMenuName(menu)} 맛집`.trim();
-      const url = new URL(NAVER_LOCAL_SEARCH_URL);
+      const url = new URL(NAVER_API_HUB_LOCAL_SEARCH_URL);
       url.searchParams.set("query", query);
       url.searchParams.set("display", "5");
       url.searchParams.set("sort", "comment");
+      url.searchParams.set("format", "json");
 
       const response = await fetch(url, {
         headers: {
-          "X-Naver-Client-Id": clientId,
-          "X-Naver-Client-Secret": clientSecret,
+          "X-NCP-APIGW-API-KEY-ID": clientId,
+          "X-NCP-APIGW-API-KEY": clientSecret,
         },
       });
-      if (!response.ok) throw new Error(`NAVER local search failed: ${response.status}`);
+      if (!response.ok) {
+        const errorPayload = await response.text();
+        throw new Error(`NAVER API HUB local search failed: ${response.status}${errorPayload ? ` ${errorPayload.slice(0, 240)}` : ""}`);
+      }
 
       const payload = await response.json();
       return (payload.items ?? []).map((item) => ({
