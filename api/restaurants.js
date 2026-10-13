@@ -1,10 +1,13 @@
 const NAVER_API_HUB_LOCAL_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/search/v1/local";
 const NAVER_API_HUB_BLOG_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/search/v1/blog";
 const CHECKPOINT_RULES = [
-  { label: "예약 필요", pattern: /예약\s*(필수|필요|권장|추천)|캐치테이블|네이버\s*예약|예약제/i },
-  { label: "웨이팅 가능", pattern: /웨이팅|대기\s*(필수|있|줄)|오픈런/i },
+  { label: "예약 필요", pattern: /예약\s*(필수|필요|권장|추천)|(?:미리|사전)\s*예약|캐치테이블|네이버\s*예약|예약제/i },
+  { label: "웨이팅 가능", pattern: /웨이팅|대기\s*(?:필수|있|가능|줄)|줄\s*(?:서는|서야|서서)|오픈런/i },
   { label: "브레이크 타임", pattern: /브레이크\s*타임|휴식\s*시간/i },
-  { label: "주차 확인", pattern: /주차\s*(가능|불가|장|지원|정보)?|발렛/i },
+  // A general "parking available" mention is not a failure-prevention signal.
+  // Only show this tag when the snippet asks the visitor to check parking or
+  // describes a likely parking constraint.
+  { label: "주차 확인", pattern: /주차\s*(?:공간|자리|장)?\s*(?:협소|없|불가|어렵|제한)|(?:인근|근처)\s*(?:공영\s*)?주차장|공영\s*주차장|주차\s*(?:여부|정보|가능\s*여부|확인|문의)|유료\s*주차|주차\s*지원\s*(?:없|불가)/i },
   { label: "정기 휴무 확인", pattern: /정기\s*휴무|휴무일|휴무\s*(확인|주의)/i },
   { label: "영업시간 확인", pattern: /영업\s*시간|라스트\s*오더|마감\s*(시간|임박)?/i },
   { label: "포장 가능", pattern: /포장\s*(가능|주문)|테이크\s*아웃/i },
