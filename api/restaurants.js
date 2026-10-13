@@ -13,6 +13,28 @@ function searchMenuName(menu) {
   return menu.replace("고기/구이", "고기").replace("면/국밥", "국밥").replace("카페/브런치", "브런치");
 }
 
+const BUDGET_FILTERS = {
+  "1만원 이하": { min: 0, max: 10000, priceLevels: ["PRICE_LEVEL_INEXPENSIVE"] },
+  "1~2만원": { min: 10000, max: 20000, priceLevels: ["PRICE_LEVEL_INEXPENSIVE", "PRICE_LEVEL_MODERATE"] },
+  "2~3만원": { min: 20000, max: 30000, priceLevels: ["PRICE_LEVEL_MODERATE", "PRICE_LEVEL_EXPENSIVE"] },
+  "3만원 이상": { min: 30000, max: Number.POSITIVE_INFINITY, priceLevels: ["PRICE_LEVEL_EXPENSIVE", "PRICE_LEVEL_VERY_EXPENSIVE"] },
+};
+
+function priceBounds(priceRange) {
+  const start = Number(priceRange?.startPrice?.units);
+  const end = Number(priceRange?.endPrice?.units);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  return { min: Math.min(start, end), max: Math.max(start, end) };
+}
+
+function matchesBudget(place, budget) {
+  const filter = BUDGET_FILTERS[budget];
+  if (!filter) return true;
+  const bounds = priceBounds(place.priceRange);
+  // 가격 등급은 넓은 범주이므로, 카드에 표시할 실제 Google Places 가격 범위도 반드시 일치시킨다.
+  return Boolean(bounds && bounds.min >= filter.min && bounds.max <= filter.max);
+}
+
 function priceLabel(priceLevel, priceRange) {
   if (priceRange?.startPrice?.units || priceRange?.endPrice?.units) {
     const start = Number(priceRange.startPrice?.units ?? 0).toLocaleString("ko-KR");
@@ -104,11 +126,16 @@ module.exports = async function handler(req, res) {
         "Content-Type": "application/json", "X-Goog-Api-Key": placesApiKey,
         "X-Goog-FieldMask": ["places.id", "places.displayName", "places.formattedAddress", "places.location", "places.googleMapsUri", "places.primaryTypeDisplayName", "places.types", "places.priceLevel", "places.priceRange", "places.rating", "places.userRatingCount", "places.currentOpeningHours", "places.generativeSummary", "places.editorialSummary", "places.reviews", "places.photos"].join(","),
       },
-      body: JSON.stringify({ textQuery: `${area} ${conditions.menus.map(searchMenuName).join(" 또는 ")} 음식점`, languageCode: "ko", maxResultCount: 8 }),
+      body: JSON.stringify({
+        textQuery: `${area} ${conditions.menus.map(searchMenuName).join(" 또는 ")} 음식점`,
+        languageCode: "ko",
+        maxResultCount: 20,
+        ...(BUDGET_FILTERS[budget] ? { priceLevels: BUDGET_FILTERS[budget].priceLevels } : {}),
+      }),
     });
     if (!response.ok) { const errorPayload = await response.text(); throw new Error(`Google Places Text Search failed: ${response.status} ${errorPayload.slice(0, 240)}`); }
     const places = (await response.json()).places ?? [];
-    const normalized = places.filter((place) => place.displayName?.text && place.location).slice(0, 3).map((place) => ({
+    const normalized = places.filter((place) => place.displayName?.text && place.location && matchesBudget(place, budget)).slice(0, 3).map((place) => ({
       source: place, name: cleanText(place.displayName?.text), category: cleanText(place.primaryTypeDisplayName?.text) || "음식점", address: cleanText(place.formattedAddress), latitude: place.location.latitude, longitude: place.location.longitude,
       googleMapsUri: place.googleMapsUri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.displayName?.text} ${place.formattedAddress || area}`)}`,
       rating: place.rating ?? null, userRatingCount: place.userRatingCount ?? null, price: priceLabel(place.priceLevel, place.priceRange), openNow: place.currentOpeningHours?.openNow,
