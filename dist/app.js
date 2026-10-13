@@ -57,6 +57,18 @@
     document.getElementById("cards").innerHTML = markup;
   }
 
+  function messageForSearchError(code) {
+    const messages = {
+      NAVER_AUTH_FAILED: "검색 서비스 인증에 문제가 있어요. 잠시 후 다시 시도해 주세요.",
+      NAVER_TEMPORARY_ERROR: "네이버 검색 서비스가 일시적으로 응답하지 않아요. 잠시 후 다시 시도해 주세요.",
+      NAVER_SEARCH_FAILED: "네이버 검색 결과를 가져오지 못했어요. 잠시 후 다시 시도해 주세요.",
+      NAVER_NETWORK_ERROR: "네이버 검색 서비스에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.",
+      SERVER_CONFIGURATION_ERROR: "검색 서비스를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.",
+      INVALID_AREA: "검색할 지역을 입력해 주세요.",
+    };
+    return messages[code] || "검색 서버에 연결하지 못했어요. 네트워크 상태를 확인한 뒤 다시 시도해 주세요.";
+  }
+
   function formatBudget(range, people) {
     const perPerson = range.max === null
       ? `${budgetText(range.min)} 이상`
@@ -90,7 +102,15 @@
       const params = new URLSearchParams({ area, menu, budget, people: String(people) });
       const response = await fetch(`/api/restaurants?${params}`);
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || "검색 결과를 불러오지 못했어요.");
+      if (!response.ok) {
+        const error = new Error(messageForSearchError(payload.code));
+        error.code = payload.code;
+        throw error;
+      }
+
+      if (!payload.query?.perPersonBudget || !Array.isArray(payload.results)) {
+        throw new Error("검색 서버 응답이 올바르지 않아요. 잠시 후 다시 시도해 주세요.");
+      }
 
       const { perPerson, total } = formatBudget(payload.query.perPersonBudget, people);
       const budgetPanel = `<section class="restaurant" style="background:#fff7f7;border-color:#ffd5d7"><strong>${people}명 식사 예산</strong><p class="lead" style="margin:7px 0 0">1인 ${escapeHtml(perPerson)} · 총 ${escapeHtml(total)}</p><p class="meta" style="margin:7px 0 0">가격 정보가 없는 결과는 예산 적합 여부를 확정할 수 없어요.</p></section>`;
@@ -110,7 +130,10 @@
       }).join("");
       setCards(`${budgetPanel}<p class="meta" style="margin:12px 2px">네이버 지역 검색의 관련도 순서입니다. 가격 정보가 확인되는 식당이 없어서 가격 기준 정렬은 보류했어요.</p>${cards}`);
     } catch (error) {
-      setCards(`<section class="restaurant"><strong>검색 결과를 불러오지 못했어요.</strong><p class="lead" style="margin:8px 0 0">${escapeHtml(error.message || "잠시 후 다시 시도해 주세요.")}</p><button class="secondary" style="margin-top:12px" type="button" onclick="render()">다시 시도</button></section>`);
+      const message = error instanceof TypeError
+        ? "검색 서버에 연결하지 못했어요. 네트워크 상태를 확인한 뒤 다시 시도해 주세요."
+        : error.message || "잠시 후 다시 시도해 주세요.";
+      setCards(`<section class="restaurant"><strong>검색 결과를 불러오지 못했어요.</strong><p class="lead" style="margin:8px 0 0">${escapeHtml(message)}</p><button class="secondary" style="margin-top:12px" type="button" onclick="render()">다시 시도</button></section>`);
     }
   }
 

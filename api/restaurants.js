@@ -23,10 +23,26 @@ function sendJson(response, status, body) {
   response.status(status).json(body);
 }
 
+function sendError(response, status, code, error) {
+  return sendJson(response, status, { code, error });
+}
+
+function upstreamFailure(response, status) {
+  if (status === 401 || status === 403) {
+    return sendError(response, 502, "NAVER_AUTH_FAILED", "네이버 검색 서비스 인증을 확인하지 못했어요.");
+  }
+
+  if (status === 429 || status >= 500) {
+    return sendError(response, 503, "NAVER_TEMPORARY_ERROR", "네이버 검색 서비스가 일시적으로 응답하지 않아요. 잠시 후 다시 시도해 주세요.");
+  }
+
+  return sendError(response, 502, "NAVER_SEARCH_FAILED", "네이버 검색 결과를 가져오지 못했어요. 잠시 후 다시 시도해 주세요.");
+}
+
 module.exports = async function restaurants(request, response) {
   if (request.method !== "GET") {
     response.setHeader("Allow", "GET");
-    return sendJson(response, 405, { error: "GET 요청만 지원합니다." });
+    return sendError(response, 405, "METHOD_NOT_ALLOWED", "GET 요청만 지원합니다.");
   }
 
   const area = String(request.query.area || "").trim().slice(0, 80);
@@ -35,14 +51,14 @@ module.exports = async function restaurants(request, response) {
   const people = Math.min(50, Math.max(1, Number.parseInt(request.query.people, 10) || 1));
 
   if (!area) {
-    return sendJson(response, 400, { error: "검색할 지역을 입력해 주세요." });
+    return sendError(response, 400, "INVALID_AREA", "검색할 지역을 입력해 주세요.");
   }
 
   const clientId = process.env.NAVER_SEARCH_CLIENT_ID;
   const clientSecret = process.env.NAVER_SEARCH_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
     console.error("Naver Search API credentials are not configured.");
-    return sendJson(response, 500, { error: "검색 서비스를 준비하지 못했어요. 잠시 후 다시 시도해 주세요." });
+    return sendError(response, 500, "SERVER_CONFIGURATION_ERROR", "검색 서비스를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.");
   }
 
   try {
@@ -60,7 +76,7 @@ module.exports = async function restaurants(request, response) {
 
     if (!naverResponse.ok) {
       console.error(`Naver local search failed with status ${naverResponse.status}.`);
-      return sendJson(response, 502, { error: "네이버 검색 결과를 가져오지 못했어요. 잠시 후 다시 시도해 주세요." });
+      return upstreamFailure(response, naverResponse.status);
     }
 
     const payload = await naverResponse.json();
@@ -89,6 +105,6 @@ module.exports = async function restaurants(request, response) {
     });
   } catch (error) {
     console.error("Naver local search request failed.", error instanceof Error ? error.message : "Unknown error");
-    return sendJson(response, 502, { error: "검색 중 문제가 생겼어요. 네트워크 상태를 확인한 뒤 다시 시도해 주세요." });
+    return sendError(response, 503, "NAVER_NETWORK_ERROR", "네이버 검색 서비스에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.");
   }
 };
