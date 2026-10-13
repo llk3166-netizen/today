@@ -27,15 +27,13 @@ function createResponse() {
 
 async function withMockedFetch(response, callback) {
   const originalFetch = global.fetch;
-  let fetchUrl;
-  let fetchOptions;
+  const fetchRequests = [];
   global.fetch = async (url, options) => {
-    fetchUrl = url;
-    fetchOptions = options;
-    return response;
+    fetchRequests.push({ url, options });
+    return typeof response === "function" ? response(url, options) : response;
   };
   try {
-    await callback(() => ({ url: fetchUrl, options: fetchOptions }));
+    await callback(() => fetchRequests);
   } finally {
     global.fetch = originalFetch;
   }
@@ -47,12 +45,14 @@ function request(query = {}) {
 
 test("returns normalized restaurants through the server endpoint", async () => {
   const response = createResponse();
-  await withMockedFetch({
+  await withMockedFetch((url) => ({
     ok: true,
-    json: async () => ({ items: [{ title: "<b>성수</b> 식당", category: "음식점>일식", address: "서울 성동구 성수동", roadAddress: "서울 성동구 성수이로 1", telephone: "02-1234-5678" }] }),
-  }, async (getFetchRequest) => {
+    json: async () => url.pathname === "/search/v1/local"
+      ? { items: [{ title: "<b>성수</b> 식당", category: "음식점>일식", address: "서울 성동구 성수동", roadAddress: "서울 성동구 성수이로 1", telephone: "02-1234-5678" }] }
+      : { items: [{ title: "성수 식당", description: "캐치테이블 예약 필수, 브레이크 타임과 주차 가능 여부를 확인하세요." }] },
+  }), async (getFetchRequests) => {
     await restaurants(request(), response);
-    const fetchRequest = getFetchRequest();
+    const fetchRequest = getFetchRequests().find((item) => item.url.pathname === "/search/v1/local");
     assert.equal(fetchRequest.url.origin, "https://naverapihub.apigw.ntruss.com");
     assert.equal(fetchRequest.url.pathname, "/search/v1/local");
     assert.equal(fetchRequest.url.searchParams.get("display"), "5");
@@ -63,7 +63,17 @@ test("returns normalized restaurants through the server endpoint", async () => {
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.body.results[0].name, "성수 식당");
+  assert.deepEqual(response.body.results[0].checkpoints, ["예약 필요", "브레이크 타임", "주차 확인"]);
   assert.equal(response.body.query.searchKeyword, "성수동 일식 맛집");
+});
+
+test("extracts only failure-prevention checkpoints from Naver search mentions", () => {
+  const checkpoints = restaurants.extractCheckpoints([
+    { title: "미쁘동 성수", description: "웨이팅이 있고 정기 휴무일과 라스트 오더를 확인하세요." },
+    { title: "성수 미쁘동", description: "포장 주문도 가능합니다." },
+  ]);
+
+  assert.deepEqual(checkpoints, ["웨이팅 가능", "정기 휴무 확인", "영업시간 확인", "포장 가능"]);
 });
 
 test("maps Naver authentication errors to a safe client error", async () => {

@@ -1,4 +1,14 @@
 const NAVER_API_HUB_LOCAL_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/search/v1/local";
+const NAVER_API_HUB_BLOG_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/search/v1/blog";
+const CHECKPOINT_RULES = [
+  { label: "예약 필요", pattern: /예약\s*(필수|필요|권장|추천)|캐치테이블|네이버\s*예약|예약제/i },
+  { label: "웨이팅 가능", pattern: /웨이팅|대기\s*(필수|있|줄)|오픈런/i },
+  { label: "브레이크 타임", pattern: /브레이크\s*타임|휴식\s*시간/i },
+  { label: "주차 확인", pattern: /주차\s*(가능|불가|장|지원|정보)?|발렛/i },
+  { label: "정기 휴무 확인", pattern: /정기\s*휴무|휴무일|휴무\s*(확인|주의)/i },
+  { label: "영업시간 확인", pattern: /영업\s*시간|라스트\s*오더|마감\s*(시간|임박)?/i },
+  { label: "포장 가능", pattern: /포장\s*(가능|주문)|테이크\s*아웃/i },
+];
 
 function cleanText(value = "") {
   return value
@@ -7,6 +17,50 @@ function cleanText(value = "") {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .trim();
+}
+
+function extractCheckpoints(items = []) {
+  const matches = new Set();
+
+  for (const item of items) {
+    const text = cleanText(`${item.title || ""} ${item.description || ""}`);
+    for (const checkpoint of CHECKPOINT_RULES) {
+      if (checkpoint.pattern.test(text)) matches.add(checkpoint.label);
+    }
+  }
+
+  return CHECKPOINT_RULES
+    .map((checkpoint) => checkpoint.label)
+    .filter((label) => matches.has(label));
+}
+
+function naverHeaders(clientId, clientSecret) {
+  return {
+    Accept: "application/json",
+    "X-NCP-APIGW-API-KEY-ID": clientId,
+    "X-NCP-APIGW-API-KEY": clientSecret,
+  };
+}
+
+async function fetchRestaurantCheckpoints({ area, name, clientId, clientSecret }) {
+  try {
+    const url = new URL(NAVER_API_HUB_BLOG_SEARCH_URL);
+    url.searchParams.set("query", `${area} ${name}`);
+    url.searchParams.set("display", "5");
+    url.searchParams.set("start", "1");
+    url.searchParams.set("sort", "sim");
+    url.searchParams.set("format", "json");
+    const response = await fetch(url, { headers: naverHeaders(clientId, clientSecret) });
+    if (!response.ok) {
+      console.warn(`Naver blog checkpoint search failed with status ${response.status}.`);
+      return [];
+    }
+    const payload = await response.json();
+    return extractCheckpoints(payload.items);
+  } catch (error) {
+    console.warn("Naver blog checkpoint search failed.", error instanceof Error ? error.message : "Unknown error");
+    return [];
+  }
 }
 
 function budgetRange(label) {
@@ -72,11 +126,7 @@ module.exports = async function restaurants(request, response) {
     url.searchParams.set("sort", "comment");
     url.searchParams.set("format", "json");
     const naverResponse = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        "X-NCP-APIGW-API-KEY-ID": clientId,
-        "X-NCP-APIGW-API-KEY": clientSecret,
-      },
+      headers: naverHeaders(clientId, clientSecret),
     });
 
     if (!naverResponse.ok) {
@@ -86,7 +136,7 @@ module.exports = async function restaurants(request, response) {
 
     const payload = await naverResponse.json();
     const range = budgetRange(budget);
-    const results = (payload.items || []).map((item) => {
+    const baseResults = (payload.items || []).map((item) => {
       const name = cleanText(item.title);
       const mapSearchQuery = `${area} ${name}`;
       return {
@@ -102,6 +152,10 @@ module.exports = async function restaurants(request, response) {
         priceNote: "네이버 지역 검색 결과에는 메뉴 가격 정보가 없어 예산 적합 여부를 확인할 수 없어요.",
       };
     });
+    const results = await Promise.all(baseResults.map(async (restaurant) => ({
+      ...restaurant,
+      checkpoints: await fetchRestaurantCheckpoints({ area, name: restaurant.name, clientId, clientSecret }),
+    })));
 
     return sendJson(response, 200, {
       query: { area, menu, searchKeyword, budget, people, perPersonBudget: range, totalBudget: { min: range.min * people, max: range.max === null ? null : range.max * people } },
@@ -113,3 +167,5 @@ module.exports = async function restaurants(request, response) {
     return sendError(response, 503, "NAVER_NETWORK_ERROR", "네이버 검색 서비스에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.");
   }
 };
+
+module.exports.extractCheckpoints = extractCheckpoints;
