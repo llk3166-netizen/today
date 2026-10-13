@@ -1,4 +1,3 @@
 {
-  "buildCommand": "node scripts/generate-naver-maps-config.mjs",
   "outputDirectory": "dist"
 }

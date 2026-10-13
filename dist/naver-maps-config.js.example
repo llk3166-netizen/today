@@ -1,5 +1,0 @@
-/*
- * 이 파일을 naver-maps-config.js로 복사한 뒤 NAVER Maps JavaScript API Client ID를 설정하세요.
- * 실제 naver-maps-config.js는 Git에 커밋하지 마세요.
- */
-window.NAVER_MAPS_CLIENT_ID = "YOUR_NAVER_MAPS_CLIENT_ID";
