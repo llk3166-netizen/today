@@ -4,6 +4,8 @@ const test = require("node:test");
 process.env.NAVER_SEARCH_CLIENT_ID = "test-client-id";
 process.env.NAVER_SEARCH_CLIENT_SECRET = "test-client-secret";
 process.env.GOOGLE_PLACES_API_KEY = "test-google-places-key";
+process.env.GEMINI_API_KEY = "test-gemini-key";
+process.env.GEMINI_MODEL = "gemini-2.5-flash";
 
 const restaurants = require("./restaurants");
 
@@ -55,7 +57,9 @@ test("returns normalized restaurants through the server endpoint", async () => {
         ? { items: [{ thumbnail: "https://images.example.com/restaurant.jpg" }] }
         : url.origin === "https://places.googleapis.com"
           ? { places: [{ displayName: { text: "성수 식당" }, priceLevel: "PRICE_LEVEL_MODERATE" }] }
-          : { items: [{ title: "성수 식당", description: "캐치테이블 예약 필수, 브레이크 타임과 주차 가능 여부를 확인하세요." }] },
+          : url.origin === "https://generativelanguage.googleapis.com"
+            ? { candidates: [{ content: { parts: [{ text: JSON.stringify({ recommendations: [{ name: "성수 식당", reasons: ["성수동 일식 조건 후보예요.", "음식점 분류로 확인됐어요.", "Google 가격: 중간이에요.", "예약 필요 정보를 확인해 보세요."] }] }) }] } }] }
+            : { items: [{ title: "성수 식당", description: "캐치테이블 예약 필수, 브레이크 타임과 주차 가능 여부를 확인하세요." }] },
   }), async (getFetchRequests) => {
     await restaurants(request(), response);
     const fetchRequest = getFetchRequests().find((item) => item.url.pathname === "/search/v1/local");
@@ -73,7 +77,24 @@ test("returns normalized restaurants through the server endpoint", async () => {
   assert.equal(response.body.results[0].googlePriceLevel, "PRICE_LEVEL_MODERATE");
   assert.equal(response.body.results[0].priceStatus, "Google 가격: 중간");
   assert.deepEqual(response.body.results[0].checkpoints, ["예약 필요", "브레이크 타임", "주차 확인"]);
+  assert.equal(response.body.results[0].geminiReasons.length, 4);
   assert.equal(response.body.query.searchKeyword, "성수동 일식 맛집");
+});
+
+test("falls back to fact-based reasons when Gemini returns too few lines", () => {
+  const reasons = restaurants.parseGeminiRecommendations(JSON.stringify({
+    recommendations: [{ name: "성수 식당", reasons: ["한 줄뿐이에요."] }],
+  }), [{ name: "성수 식당", category: "일식", priceStatus: "Google 가격: 중간", checkpoints: [] }], "성수동", "일식");
+
+  assert.equal(reasons.get("성수 식당").length, 4);
+});
+
+test("matches Gemini recommendations when the restaurant name spacing differs", () => {
+  const reasons = restaurants.parseGeminiRecommendations(JSON.stringify({
+    recommendations: [{ name: "성수식당", reasons: ["하나", "둘", "셋", "넷"] }],
+  }), [{ name: "성수 식당", category: "일식", priceStatus: "Google 가격: 중간", checkpoints: [] }], "성수동", "일식");
+
+  assert.deepEqual(reasons.get("성수 식당"), ["하나", "둘", "셋", "넷"]);
 });
 
 test("keeps only Google Places price levels that match the selected budget", async () => {

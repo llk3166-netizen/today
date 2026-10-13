@@ -2,6 +2,7 @@ const NAVER_API_HUB_LOCAL_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/sea
 const NAVER_API_HUB_BLOG_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/search/v1/blog";
 const NAVER_API_HUB_IMAGE_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/search/v1/image";
 const GOOGLE_PLACES_TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
+const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 const GOOGLE_PRICE_LEVELS = {
   PRICE_LEVEL_INEXPENSIVE: { label: "저가", budgets: ["1만원 이하", "1~2만원"] },
   PRICE_LEVEL_MODERATE: { label: "중간", budgets: ["1~2만원", "2~3만원"] },
@@ -167,6 +168,89 @@ async function fetchGooglePlacePrice({ area, name, menu, apiKey }) {
   }
 }
 
+function geminiModelName(value) {
+  const model = String(value || "gemini-2.5-flash").trim();
+  return /^[a-zA-Z0-9._-]+$/.test(model) ? model : "gemini-2.5-flash";
+}
+
+function fallbackGeminiReasons(restaurant, area, menu) {
+  return [
+    `${area}에서 ${menu} 조건으로 찾은 후보예요.`,
+    restaurant.category ? `${restaurant.category} 분류로 확인됐어요.` : "음식점 분류로 확인됐어요.",
+    `${restaurant.priceStatus} — 선택한 1인 예산 조건에 맞아요.`,
+    restaurant.checkpoints?.length
+      ? `방문 전 ${restaurant.checkpoints.join(", ")} 정보를 확인해 보세요.`
+      : "웨이팅·주차 등 방문 전 정보는 추가 확인을 권장해요.",
+  ];
+}
+
+function parseGeminiRecommendations(text, restaurants, area, menu) {
+  try {
+    const parsed = JSON.parse(text);
+    const sourceByName = new Map(restaurants.map((restaurant) => [restaurant.name, restaurant]));
+    const recommendations = new Map();
+    for (const item of parsed.recommendations || []) {
+      const restaurant = sourceByName.get(item.name)
+        || restaurants.find((candidate) => isLikelySamePlace(candidate.name, item.name));
+      if (!restaurant) continue;
+      const reasons = Array.isArray(item.reasons)
+        ? item.reasons.map((reason) => String(reason).trim()).filter((reason) => reason && reason.length <= 120).slice(0, 5)
+        : [];
+      recommendations.set(restaurant.name, reasons.length >= 4 ? reasons : fallbackGeminiReasons(restaurant, area, menu));
+    }
+    return recommendations;
+  } catch {
+    return new Map();
+  }
+}
+
+async function fetchGeminiRecommendations({ restaurants, area, menu, apiKey, model }) {
+  if (!apiKey || !restaurants.length) return new Map();
+
+  try {
+    const facts = restaurants.map((restaurant) => ({
+      name: restaurant.name,
+      category: restaurant.category || "음식점",
+      price: restaurant.priceStatus,
+      checkpoints: restaurant.checkpoints || [],
+    }));
+    const prompt = [
+      "식당 추천 카드용 한국어 핵심 정보를 JSON으로 요약하세요.",
+      "제공된 FACTS 밖의 사실을 만들지 마세요. 웨이팅, 주차, 분위기, 가격은 FACTS에 해당 근거가 있을 때만 단정하세요.",
+      "각 식당마다 4~5개의 짧은 문장(reasons)을 작성하세요. 분위기 근거가 없으면 분위기를 추측하지 말고 '분위기 정보는 추가 확인이 필요해요.'라고 쓰세요.",
+      "반환 형식: {\"recommendations\":[{\"name\":\"식당명\",\"reasons\":[\"문장\"]}]}.",
+      `지역: ${area}; 메뉴: ${menu}; FACTS: ${JSON.stringify(facts)}`,
+    ].join("\n");
+    const requestedModel = geminiModelName(model);
+    const modelCandidates = [...new Set([requestedModel, "gemini-flash-latest"])];
+    for (const candidateModel of modelCandidates) {
+      const response = await fetch(`${GEMINI_API_BASE_URL}/${encodeURIComponent(candidateModel)}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: "application/json", temperature: 0.2, maxOutputTokens: 1200 },
+        }),
+      });
+      if (response.status === 404 && candidateModel !== "gemini-flash-latest") {
+        console.warn(`Gemini model ${candidateModel} is unavailable; retrying with gemini-flash-latest.`);
+        continue;
+      }
+      if (!response.ok) {
+        console.warn(`Gemini recommendation request failed with status ${response.status}.`);
+        return new Map();
+      }
+      const payload = await response.json();
+      const text = payload.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("");
+      return parseGeminiRecommendations(text, restaurants, area, menu);
+    }
+    return new Map();
+  } catch (error) {
+    console.warn("Gemini recommendation request failed.", error instanceof Error ? error.message : "Unknown error");
+    return new Map();
+  }
+}
+
 function budgetRange(label) {
   const ranges = {
     "1만원 이하": { min: 0, max: 10000 },
@@ -225,6 +309,8 @@ module.exports = async function restaurants(request, response) {
     console.error("Google Places API key is not configured.");
     return sendError(response, 500, "GOOGLE_PLACES_NOT_CONFIGURED", "가격 필터 서비스를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.");
   }
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const geminiModel = geminiModelName(process.env.GEMINI_MODEL);
 
   try {
     const searchKeyword = `${area} ${menu} 맛집`;
@@ -279,9 +365,20 @@ module.exports = async function restaurants(request, response) {
           : "Google Places 가격 등급을 확인하지 못해 예산 필터에서 제외했어요.",
       };
     }));
-    const results = enrichedResults.filter((restaurant) => (
+    const priceMatchedResults = enrichedResults.filter((restaurant) => (
       restaurant.googlePriceLevel && GOOGLE_PRICE_LEVELS[restaurant.googlePriceLevel].budgets.includes(budget)
     ));
+    const geminiRecommendations = await fetchGeminiRecommendations({
+      restaurants: priceMatchedResults,
+      area,
+      menu,
+      apiKey: geminiApiKey,
+      model: geminiModel,
+    });
+    const results = priceMatchedResults.map((restaurant) => ({
+      ...restaurant,
+      geminiReasons: geminiRecommendations.get(restaurant.name) || fallbackGeminiReasons(restaurant, area, menu),
+    }));
 
     return sendJson(response, 200, {
       query: { area, menu, searchKeyword, budget, people, perPersonBudget: range, totalBudget: { min: range.min * people, max: range.max === null ? null : range.max * people } },
@@ -297,3 +394,4 @@ module.exports = async function restaurants(request, response) {
 
 module.exports.extractCheckpoints = extractCheckpoints;
 module.exports.isLikelySamePlace = isLikelySamePlace;
+module.exports.parseGeminiRecommendations = parseGeminiRecommendations;

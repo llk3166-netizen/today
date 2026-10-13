@@ -146,10 +146,13 @@
         const checkpointInfo = Array.isArray(restaurant.checkpoints) && restaurant.checkpoints.length
           ? `<div class="reason"><strong>추출 대상 키워드</strong><div class="tags">${restaurant.checkpoints.map((checkpoint) => `<span>✓ ${escapeHtml(checkpoint)}</span>`).join(" ")}</div></div>`
           : '<div class="reason"><strong>추출 대상 키워드</strong><p class="meta" style="margin:4px 0 0">방문 전 정보 확인 권장</p></div>';
+        const geminiInfo = Array.isArray(restaurant.geminiReasons) && restaurant.geminiReasons.length
+          ? `<div class="reason"><strong>Gemini 추천 이유</strong><ul>${restaurant.geminiReasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join("")}</ul></div>`
+          : '<div class="reason"><strong>Gemini 추천 이유</strong><p class="meta" style="margin:4px 0 0">추천 이유를 준비하지 못했어요.</p></div>';
         const thumbnail = restaurant.thumbnail
           ? `<img class="food" src="${escapeHtml(restaurant.thumbnail)}" alt="${escapeHtml(restaurant.name)} 대표 이미지" onerror="handleRestaurantImageError(this)">`
           : '<div class="food" aria-hidden="true" style="display:grid;place-items:center;font-size:27px">🍽️</div>';
-        return `<article class="restaurant"><div class="rank"><b>${index + 1}순위</b><span class="score">${escapeHtml(restaurant.priceStatus)}</span></div><div class="info">${thumbnail}<div><div class="meta">${escapeHtml(restaurant.category || "음식점")}</div><div class="name">${escapeHtml(restaurant.name)}</div></div></div>${checkpointInfo}<div class="actions">${mapUrl ? `<a class="save" style="display:grid;place-items:center;text-decoration:none" target="_blank" rel="noopener noreferrer" href="${escapeHtml(mapUrl)}" aria-label="${escapeHtml(restaurant.mapSearchQuery || `${area} ${restaurant.name}`)} 네이버 지도에서 보기">네이버 지도에서 보기</a>` : '<span class="secondary" style="display:grid;place-items:center;color:#69666a">지도 링크 없음</span>'}</div></article>`;
+        return `<article class="restaurant"><div class="rank"><b>${index + 1}순위</b><span class="score">${escapeHtml(restaurant.priceStatus)}</span></div><div class="info">${thumbnail}<div><div class="meta">${escapeHtml(restaurant.category || "음식점")}</div><div class="name">${escapeHtml(restaurant.name)}</div></div></div>${checkpointInfo}${geminiInfo}<div class="actions">${mapUrl ? `<a class="save" style="display:grid;place-items:center;text-decoration:none" target="_blank" rel="noopener noreferrer" href="${escapeHtml(mapUrl)}" aria-label="${escapeHtml(restaurant.mapSearchQuery || `${area} ${restaurant.name}`)} 네이버 지도에서 보기">네이버 지도에서 보기</a>` : '<span class="secondary" style="display:grid;place-items:center;color:#69666a">지도 링크 없음</span>'}</div></article>`;
       }).join("");
       setCards(`${budgetPanel}<p class="meta" style="margin:12px 2px">네이버 지역 검색의 관련도 순서이며, Google Places 가격 등급으로 1인 예산 조건을 필터링했어요.</p>${cards}`);
     } catch (error) {
