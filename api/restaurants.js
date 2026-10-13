@@ -12,6 +12,7 @@ const CHECKPOINT_RULES = [
   { label: "영업시간 확인", pattern: /영업\s*시간|라스트\s*오더|마감\s*(시간|임박)?/i },
   { label: "포장 가능", pattern: /포장\s*(가능|주문)|테이크\s*아웃/i },
 ];
+const TIME_EXPRESSION = /(?:오전|오후)?\s*\d{1,2}\s*(?::\s*\d{2})?\s*(?:시)?\s*(?:~|[-–—]|부터)\s*(?:오전|오후)?\s*\d{1,2}\s*(?::\s*\d{2})?\s*(?:시)?|(?:오전|오후)\s*\d{1,2}\s*시(?:\s*\d{1,2}\s*분)?/i;
 
 function cleanText(value = "") {
   return value
@@ -22,19 +23,45 @@ function cleanText(value = "") {
     .trim();
 }
 
+function nearbyTime(text, index) {
+  const sentenceStart = Math.max(
+    text.lastIndexOf(".", index),
+    text.lastIndexOf("!", index),
+    text.lastIndexOf("?", index),
+  ) + 1;
+  const sentenceEndMatch = /[.!?]/.exec(text.slice(index));
+  const sentenceEnd = sentenceEndMatch ? index + sentenceEndMatch.index : text.length;
+  const context = text.slice(sentenceStart, sentenceEnd);
+  const match = context.match(TIME_EXPRESSION);
+  return match ? match[0].replace(/\s+/g, " ").trim() : null;
+}
+
 function extractCheckpoints(items = []) {
-  const matches = new Set();
+  const matches = new Map();
 
   for (const item of items) {
     const text = cleanText(`${item.title || ""} ${item.description || ""}`);
     for (const checkpoint of CHECKPOINT_RULES) {
-      if (checkpoint.pattern.test(text)) matches.add(checkpoint.label);
+      const match = checkpoint.pattern.exec(text);
+      if (!match) continue;
+
+      const time = /브레이크 타임|영업시간 확인/.test(checkpoint.label)
+        ? nearbyTime(text, match.index)
+        : null;
+      // Prefer a snippet that includes a concrete time if another matching
+      // result only named the operating-hour condition.
+      if (!matches.has(checkpoint.label) || (time && !matches.get(checkpoint.label))) {
+        matches.set(checkpoint.label, time);
+      }
     }
   }
 
   return CHECKPOINT_RULES
-    .map((checkpoint) => checkpoint.label)
-    .filter((label) => matches.has(label));
+    .filter((checkpoint) => matches.has(checkpoint.label))
+    .map((checkpoint) => {
+      const time = matches.get(checkpoint.label);
+      return time ? `${checkpoint.label} (${time})` : checkpoint.label;
+    });
 }
 
 function naverHeaders(clientId, clientSecret) {

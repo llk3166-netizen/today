@@ -69,11 +69,11 @@ test("returns normalized restaurants through the server endpoint", async () => {
 
 test("extracts only failure-prevention checkpoints from Naver search mentions", () => {
   const checkpoints = restaurants.extractCheckpoints([
-    { title: "미쁘동 성수", description: "웨이팅이 있고 정기 휴무일과 라스트 오더를 확인하세요. 주차 공간이 협소해 인근 공영주차장을 이용했어요." },
+    { title: "미쁘동 성수", description: "웨이팅이 있고 정기 휴무일과 라스트 오더를 확인하세요. 브레이크 타임은 15:00~17:00이며 주차 공간이 협소해 인근 공영주차장을 이용했어요." },
     { title: "성수 미쁘동", description: "포장 주문도 가능합니다. 주차장이 넓어요." },
   ]);
 
-  assert.deepEqual(checkpoints, ["웨이팅 가능", "주차 확인", "정기 휴무 확인", "영업시간 확인", "포장 가능"]);
+  assert.deepEqual(checkpoints, ["웨이팅 가능", "브레이크 타임 (15:00~17:00)", "주차 확인", "정기 휴무 확인", "영업시간 확인", "포장 가능"]);
 });
 
 test("does not treat a simple parking-available mention as a checkpoint", () => {

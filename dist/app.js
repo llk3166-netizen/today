@@ -128,14 +128,13 @@
 
       const cards = payload.results.map((restaurant, index) => {
         const mapUrl = safeMapUrl(restaurant.mapUrl);
-        const address = restaurant.roadAddress || restaurant.address || "주소 정보 없음";
-        const checkpointTags = Array.isArray(restaurant.checkpoints) && restaurant.checkpoints.length
-          ? `<div class="tags" style="margin:0 0 12px"><strong class="meta" style="display:block;margin-bottom:5px">실패 방지 체크포인트</strong>${restaurant.checkpoints.map((checkpoint) => `<span>✓ ${escapeHtml(checkpoint)}</span>`).join(" ")}</div>`
-          : "";
+        const checkpointInfo = Array.isArray(restaurant.checkpoints) && restaurant.checkpoints.length
+          ? `<div class="reason"><strong>추출 대상 키워드</strong><div class="tags">${restaurant.checkpoints.map((checkpoint) => `<span>✓ ${escapeHtml(checkpoint)}</span>`).join(" ")}</div></div>`
+          : '<div class="reason"><strong>추출 대상 키워드</strong><p class="meta" style="margin:4px 0 0">방문 전 정보 확인 권장</p></div>';
         const thumbnail = restaurant.thumbnail
           ? `<img class="food" src="${escapeHtml(restaurant.thumbnail)}" alt="${escapeHtml(restaurant.name)} 사진">`
           : '<div class="food" aria-hidden="true" style="display:grid;place-items:center;font-size:27px">🍽️</div>';
-        return `<article class="restaurant"><div class="rank"><b>${index + 1}순위</b><span class="score">${escapeHtml(restaurant.priceStatus)}</span></div><div class="info">${thumbnail}<div><div class="meta">${escapeHtml(restaurant.category || "음식점")}</div><div class="name">${escapeHtml(restaurant.name)}</div><div class="tags"><span>${escapeHtml(address)}</span></div></div></div>${checkpointTags}<div class="reason"><strong>검색 정보</strong><ul><li>${escapeHtml(restaurant.address || "지번 주소 정보 없음")}</li><li>${escapeHtml(restaurant.roadAddress || "도로명 주소 정보 없음")}</li><li>${escapeHtml(restaurant.telephone || "전화번호 정보 없음")}</li><li>${escapeHtml(restaurant.priceNote)}</li></ul></div><div class="actions">${mapUrl ? `<a class="save" style="display:grid;place-items:center;text-decoration:none" target="_blank" rel="noopener noreferrer" href="${escapeHtml(mapUrl)}" aria-label="${escapeHtml(restaurant.mapSearchQuery || `${area} ${restaurant.name}`)} 네이버 지도에서 보기">네이버 지도에서 보기</a>` : '<span class="secondary" style="display:grid;place-items:center;color:#69666a">지도 링크 없음</span>'}</div></article>`;
+        return `<article class="restaurant"><div class="rank"><b>${index + 1}순위</b><span class="score">${escapeHtml(restaurant.priceStatus)}</span></div><div class="info">${thumbnail}<div><div class="meta">${escapeHtml(restaurant.category || "음식점")}</div><div class="name">${escapeHtml(restaurant.name)}</div></div></div>${checkpointInfo}<div class="actions">${mapUrl ? `<a class="save" style="display:grid;place-items:center;text-decoration:none" target="_blank" rel="noopener noreferrer" href="${escapeHtml(mapUrl)}" aria-label="${escapeHtml(restaurant.mapSearchQuery || `${area} ${restaurant.name}`)} 네이버 지도에서 보기">네이버 지도에서 보기</a>` : '<span class="secondary" style="display:grid;place-items:center;color:#69666a">지도 링크 없음</span>'}</div></article>`;
       }).join("");
       setCards(`${budgetPanel}<p class="meta" style="margin:12px 2px">네이버 지역 검색의 관련도 순서입니다. 가격 정보가 확인되는 식당이 없어서 가격 기준 정렬은 보류했어요.</p>${cards}`);
     } catch (error) {
