@@ -22,15 +22,15 @@ module.exports = async function handler(req, res) {
 
   const area = cleanText(req.query.area).slice(0, 50);
   const menu = cleanText(req.query.menu).slice(0, 30);
-  const clientId = process.env.NAVER_MAPS_CLIENT_ID;
-  const clientSecret = process.env.NAVER_MAPS_CLIENT_SECRET;
+  const clientId = process.env.NAVER_SEARCH_CLIENT_ID;
+  const clientSecret = process.env.NAVER_SEARCH_CLIENT_SECRET;
 
   if (!area) {
     return res.status(400).json({ error: "지역을 입력해 주세요." });
   }
 
   if (!clientId || !clientSecret) {
-    console.error("NAVER Maps search credentials are not configured.");
+    console.error("NAVER Search API credentials are not configured.");
     return res.status(503).json({ error: "식당 검색 설정을 준비 중이에요." });
   }
 
