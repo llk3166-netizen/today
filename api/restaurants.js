@@ -69,6 +69,7 @@ module.exports = async function restaurants(request, response) {
     url.searchParams.set("sort", "comment");
     const naverResponse = await fetch(url, {
       headers: {
+        Accept: "application/json",
         "X-Naver-Client-Id": clientId,
         "X-Naver-Client-Secret": clientSecret,
       },

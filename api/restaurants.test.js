@@ -27,9 +27,13 @@ function createResponse() {
 
 async function withMockedFetch(response, callback) {
   const originalFetch = global.fetch;
-  global.fetch = async () => response;
+  let fetchOptions;
+  global.fetch = async (_url, options) => {
+    fetchOptions = options;
+    return response;
+  };
   try {
-    await callback();
+    await callback(() => fetchOptions);
   } finally {
     global.fetch = originalFetch;
   }
@@ -44,7 +48,12 @@ test("returns normalized restaurants through the server endpoint", async () => {
   await withMockedFetch({
     ok: true,
     json: async () => ({ items: [{ title: "<b>성수</b> 식당", category: "음식점>일식", address: "서울 성동구 성수동", roadAddress: "서울 성동구 성수이로 1", telephone: "02-1234-5678" }] }),
-  }, () => restaurants(request(), response));
+  }, async (getFetchOptions) => {
+    await restaurants(request(), response);
+    assert.equal(getFetchOptions().headers.Accept, "application/json");
+    assert.equal(getFetchOptions().headers["X-Naver-Client-Id"], "test-client-id");
+    assert.equal(getFetchOptions().headers["X-Naver-Client-Secret"], "test-client-secret");
+  });
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.body.results[0].name, "성수 식당");
