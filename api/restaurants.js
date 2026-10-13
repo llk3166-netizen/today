@@ -38,8 +38,11 @@ module.exports = async function handler(req, res) {
   const budget = cleanText(req.query.budget).slice(0, 30);
   const purpose = cleanText(req.query.purpose).slice(0, 30);
   const waiting = cleanText(req.query.waiting).slice(0, 30);
-  const clientId = process.env.NAVER_SEARCH_CLIENT_ID;
-  const clientSecret = process.env.NAVER_SEARCH_CLIENT_SECRET;
+  // Support both the app-specific names and the names mirroring Naver's
+  // required HTTP headers, so deployments remain compatible with existing
+  // Vercel environment-variable configuration.
+  const clientId = process.env.NAVER_SEARCH_CLIENT_ID || process.env.X_NAVER_CLIENT_ID;
+  const clientSecret = process.env.NAVER_SEARCH_CLIENT_SECRET || process.env.X_NAVER_CLIENT_SECRET;
 
   if (!area) {
     return res.status(400).json({ error: "지역을 입력해 주세요." });
