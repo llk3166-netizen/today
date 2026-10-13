@@ -12,6 +12,7 @@
   <style>
     :root{--red:#da3743;--ruby:#821620;--ink:#1c2127;--muted:#69666a;--line:#e9e1df;--paper:#fbf9f9;--linen:#f7f4f4;--gold:#b88a44}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:"Noto Sans KR",sans-serif}button{font:inherit;cursor:pointer}.app{max-width:760px;margin:auto;min-height:100svh;background:var(--paper)}.top{display:flex;justify-content:space-between;align-items:center;padding:20px 22px 13px}.brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:21px;letter-spacing:-1px}.mark{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--red);color:#fff;font-size:14px}.place{border:1px solid var(--line);border-radius:99px;background:white;padding:8px 11px;color:#544d50;font-size:12px;font-weight:700}.screen{display:none;padding:4px 22px 42px}.screen.active{display:block}.eyebrow{display:inline-flex;gap:6px;align-items:center;color:var(--red);background:#fff0f0;border:1px solid #ffd5d7;border-radius:7px;padding:5px 8px;font-size:11px;font-weight:800}.hero{padding:43px 0 18px}.hero h1{font-size:clamp(34px,9vw,54px);line-height:1.16;letter-spacing:-2.6px;margin:14px 0}.hero h1 em{font-style:normal;color:var(--red);text-decoration:underline;text-decoration-color:#f4b4b7;text-decoration-thickness:6px;text-underline-offset:4px}.hero p{line-height:1.75;color:var(--muted);font-size:15px;max-width:480px}.hero-card{margin:28px 0 18px;padding:22px;background:linear-gradient(135deg,#fff 30%,#fff2f2);border:1px solid var(--line);border-radius:24px;box-shadow:0 14px 35px rgba(37,20,20,.055)}.hero-card b{display:block;font-size:18px;letter-spacing:-.6px;margin:5px 0}.hero-card span{font-size:13px;color:var(--muted)}.cta{border:0;border-radius:14px;background:var(--red);color:white;font-weight:800;padding:16px 19px;width:100%;font-size:16px;box-shadow:0 7px 18px #da374340}.cta:hover{background:#c42a36}.trust{text-align:center;color:#817a7d;font-size:11px;margin-top:14px}.progress{display:flex;gap:6px;margin:12px 0 30px}.progress span{height:4px;flex:1;border-radius:10px;background:#e9e2e1}.progress span.on{background:var(--red)}.back{border:0;background:none;padding:0;color:#6a6164;font-size:13px}.screen h2{font-size:27px;line-height:1.3;letter-spacing:-1.4px;margin:13px 0 8px}.lead{color:var(--muted);font-size:14px;line-height:1.65;margin:0 0 25px}.field{margin:21px 0}.field label{display:block;font-weight:800;margin-bottom:10px;font-size:14px}.search{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:13px;padding:15px}.search input{border:0;outline:0;width:100%;font:inherit;font-size:15px}.chips{display:flex;gap:8px;flex-wrap:wrap}.chip{border:1px solid var(--line);background:#fff;color:#544d50;border-radius:99px;padding:10px 13px;font-size:13px}.chip.selected{border-color:var(--ink);background:var(--ink);color:white;font-weight:700}.bottom-cta{margin-top:31px}.mode{padding:19px;border:1px solid var(--line);background:#fff;border-radius:18px;margin:12px 0;width:100%;text-align:left}.mode:hover{border-color:var(--red);box-shadow:0 8px 24px #84202712}.mode .icon{font-size:23px}.mode strong{display:block;margin:9px 0 4px;font-size:17px;letter-spacing:-.5px}.mode span{font-size:13px;color:var(--muted);line-height:1.5}.mode i{float:right;color:var(--red);font-style:normal;font-weight:800}.section-title{font-size:14px;font-weight:800;margin:25px 0 11px}.hint{font-size:12px;color:var(--muted);font-weight:400}.summary{display:flex;gap:7px;overflow:auto;padding:2px 0 12px}.summary span{white-space:nowrap;background:#fff;border:1px solid var(--line);padding:7px 10px;border-radius:99px;font-size:11px;font-weight:700}.result-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin:6px 0 20px}.result-head h2{margin:7px 0 3px}.confidence{background:var(--linen);border:1px solid var(--line);border-radius:14px;padding:8px 10px;text-align:center;font-size:10px;color:var(--muted)}.confidence b{display:block;color:var(--red);font-size:19px;line-height:1.15}.restaurant{border:1px solid var(--line);background:white;border-radius:20px;padding:16px;margin:15px 0;box-shadow:0 6px 18px rgba(30,20,20,.03)}.restaurant:first-of-type{border-top:4px solid var(--red)}.rank{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800}.rank b{background:var(--red);border-radius:7px;padding:6px 8px;color:#fff}.score{color:var(--red);background:#fff1f1;padding:5px 7px;border-radius:6px}.info{display:flex;gap:13px;margin:14px 0}.food{width:86px;height:86px;border-radius:14px;object-fit:cover;background:#f0e9e7}.meta{font-size:11px;color:var(--muted)}.name{font-size:18px;font-weight:800;letter-spacing:-.8px;margin:4px 0}.tags{font-size:11px;line-height:1.8}.tags span{background:var(--linen);border-radius:5px;padding:4px 6px}.reason{background:var(--linen);border:1px solid #eee7e5;border-radius:13px;padding:12px;font-size:12px;line-height:1.7}.reason strong{display:block;font-size:12px;margin-bottom:4px}.reason ul{padding-left:18px;margin:4px 0}.reason li::marker{color:var(--red)}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.secondary{border:1px solid var(--line);border-radius:11px;padding:11px;background:#fff;font-weight:700;font-size:12px}.save{border:0;border-radius:11px;padding:11px;background:var(--red);color:#fff;font-weight:700;font-size:12px}.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;background:var(--ink);color:#fff;padding:12px 16px;border-radius:99px;font-size:12px;transition:.25s;z-index:5;white-space:nowrap}.toast.show{transform:translate(-50%,0);opacity:1}@media(min-width:650px){.top,.screen{padding-left:42px;padding-right:42px}.hero{padding-top:70px}.restaurant{padding:19px}}
     .photo-wrap{flex:0 0 86px}.food-empty{width:86px;height:86px;border-radius:14px;display:grid;place-items:center;background:#f0e9e7;color:#817a7d;font-size:11px}.photo-credit{display:block;margin-top:4px;font-size:9px;color:#817a7d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.photo-credit a{color:inherit}
+    #tournament .food-game,#tournament .food-winner{padding:18px;border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:0 8px 24px rgba(30,20,20,.04)}#tournament .food-status{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800}#foodRound{padding:6px 10px;border-radius:99px;background:var(--red);color:#fff}#foodMatch{color:var(--muted)}#tournament .food-progress{height:7px;overflow:hidden;margin:14px 0 18px;border-radius:99px;background:#f2e6e6}#foodProgressBar{width:0;height:100%;border-radius:inherit;background:var(--red);transition:width .25s ease}#tournament .food-choices{display:grid;grid-template-columns:1fr 34px 1fr;align-items:center;gap:10px}#tournament .food-candidate{overflow:hidden;padding:0;border:1px solid var(--line);border-radius:15px;background:#fff;color:var(--ink);text-align:left;transition:.18s}#tournament .food-candidate:hover{border-color:var(--red);transform:translateY(-3px);box-shadow:0 8px 18px #84202718}#tournament .food-candidate img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:var(--linen)}#tournament .food-candidate strong,#tournament .food-candidate span{display:block;padding:0 10px}#tournament .food-candidate strong{margin-top:11px;font-size:15px;letter-spacing:-.5px}#tournament .food-candidate span{padding-bottom:12px;color:var(--red);font-size:11px;font-weight:800}#tournament .food-versus{color:var(--red);font-size:13px;text-align:center}.food-winner{text-align:center}.food-winner h2{margin:12px 0}.food-winner img{display:block;width:min(100%,230px);aspect-ratio:1;margin:12px auto;object-fit:cover;border:5px solid #fff;border-radius:50%;box-shadow:0 8px 24px #84202722}.food-winner strong{display:block;font-size:24px}.food-winner p{color:var(--muted);font-size:13px}.food-winner .secondary,.food-winner .cta{margin-top:8px;width:100%}.hidden{display:none!important}@media(max-width:420px){#tournament .food-choices{grid-template-columns:1fr;gap:8px}#tournament .food-versus{margin:2px 0}.food-winner{padding:16px!important}}
   </style>
 </head>
 <body><main class="app">
@@ -20,19 +21,28 @@
   <section class="screen" id="conditions"><button class="back" onclick="go('home')">← 처음으로</button><div class="progress"><span class="on"></span><span></span><span></span></div><h2>오늘의 조건을<br>알려주세요.</h2><p class="lead">꼭 필요한 조건부터 정해볼게요. 나머지는 건너뛰어도 괜찮아요.</p><div class="field"><label>어디에서 드시나요?</label><div class="search">⌖ <input id="area" value="성수동" aria-label="지역" /></div></div><div class="field"><label>1인 예산</label><div class="chips" data-group="budget"><button class="chip">1만원 이하</button><button class="chip selected">1~2만원</button><button class="chip">2~3만원</button><button class="chip">3만원 이상</button></div></div><div class="field"><label>오늘의 목적</label><div class="chips" data-group="purpose"><button class="chip selected">빠른 식사</button><button class="chip">데이트</button><button class="chip">친구 모임</button><button class="chip">조용한 대화</button></div></div><div class="bottom-cta"><button class="cta" onclick="go('mode')">다음: 취향 고르기</button></div></section>
   <section class="screen" id="mode"><button class="back" onclick="go('conditions')">← 조건 수정</button><div class="progress"><span class="on"></span><span class="on"></span><span></span></div><h2>어떻게 취향을<br>찾아볼까요?</h2><p class="lead">오늘의 결정 피로도에 맞춰 골라주세요.</p><button class="mode" onclick="go('tournament')"><div class="icon">✦</div><strong>취향 찾기 <i>시작 →</i></strong><span>둘 중 더 끌리는 것을 고르면 취향을 찾아드려요.<br>오늘은 내가 고르는 것도 귀찮다면?</span></button><button class="mode" onclick="go('taste')"><div class="icon">♡</div><strong>취향 바로 고르기 <i>선택 →</i></strong><span>먹고 싶은 메뉴와 원하는 분위기를 직접 골라요.<br>내 취향은 내가 제일 잘 알지.</span></button></section>
   <section class="screen" id="taste"><button class="back" onclick="go('mode')">← 방식 다시 고르기</button><div class="progress"><span class="on"></span><span class="on"></span><span></span></div><h2>오늘 끌리는 메뉴와<br>분위기를 골라주세요.</h2><p class="lead">각 항목에서 최대 3개까지 선택할 수 있어요.</p><div class="section-title">메뉴 <span class="hint">1개 이상</span></div><div class="chips multi" data-group="menu"><button class="chip">한식</button><button class="chip selected">일식</button><button class="chip">중식</button><button class="chip">양식</button><button class="chip">동남아</button><button class="chip">고기/구이</button><button class="chip">면/국밥</button><button class="chip">카페/브런치</button></div><div class="section-title">분위기 <span class="hint">1개 이상</span></div><div class="chips multi" data-group="mood"><button class="chip">조용한</button><button class="chip selected">캐주얼한</button><button class="chip">힙한</button><button class="chip">데이트하기 좋은</button><button class="chip">혼밥 편한</button><button class="chip">빨리 먹기 좋은</button></div><div class="section-title">대기 가능 여부 <span class="hint">오늘은 어느 쪽인가요?</span></div><div class="chips" data-group="wait"><button class="chip">기다릴 수 있어요</button><button class="chip selected">기다리기 어려워요</button><button class="chip">상관없어요</button></div><div class="bottom-cta"><button class="cta" onclick="go('results')">내 취향으로 추천 받기</button></div></section>
-  <section class="screen" id="tournament"><button class="back" onclick="go('mode')">← 직접 고르기</button><div class="progress"><span class="on"></span><span class="on"></span><span></span></div><p class="eyebrow" id="qcount">취향 찾기 1 / 3</p><h2 id="question">오늘은 어느 쪽이<br>더 끌리나요?</h2><p class="lead">마음 가는 쪽을 가볍게 눌러주세요. 선택 결과는 추천 검색 조건에 반영돼요.</p><button class="mode choice" onclick="nextQuestion('a')"><div class="icon">🍣</div><strong id="a">정갈한 일식</strong><span id="aDescription">담백하고 섬세한 한 끼</span></button><button class="mode choice" onclick="nextQuestion('b')"><div class="icon">🍲</div><strong id="b">든든한 한식</strong><span id="bDescription">익숙하고 따뜻한 한 끼</span></button><button class="back" onclick="nextQuestion('skip')">둘 다 별로예요</button></section>
+  <section class="screen" id="tournament"><button class="back" onclick="go('mode')">← 방식 다시 고르기</button><div class="progress"><span class="on"></span><span class="on"></span><span></span></div><p class="eyebrow">메뉴 취향 토너먼트</p><h2>더 끌리는 한 끼를<br>골라주세요.</h2><p class="lead">마음이 가는 메뉴를 고르면 최종 선택을 Google Places 검색 조건에 반영해요.</p><section id="foodGame" class="food-game" aria-live="polite"><div class="food-status"><span id="foodRound">16강</span><span id="foodMatch">1 / 8</span></div><div class="food-progress"><div id="foodProgressBar"></div></div><div class="food-choices"><button class="food-candidate" type="button" data-food-index="0"><img src="" alt="" /><strong></strong><span>이 메뉴 선택</span></button><b class="food-versus">VS</b><button class="food-candidate" type="button" data-food-index="1"><img src="" alt="" /><strong></strong><span>이 메뉴 선택</span></button></div></section><section id="foodWinner" class="food-winner hidden" aria-live="polite"><p class="eyebrow">나의 최종 취향</p><h2>오늘은 이 메뉴예요</h2><img id="foodWinnerImage" src="" alt="" /><strong id="foodWinnerName"></strong><p>선택한 메뉴에 맞춰 식당을 찾아드릴게요.</p><button class="secondary" type="button" onclick="startFoodTournament()">다시 고르기</button><button class="cta" type="button" onclick="go('results')">이 취향으로 추천받기</button></section></section>
   <section class="screen" id="results"><div class="summary"><span id="summaryArea">성수동</span><span>1~2만원</span><span id="summaryWait">대기 어려움</span><span id="summaryTaste">캐주얼한 일식</span></div><div class="result-head"><div><span class="eyebrow">Google Places · Gemini 추천</span><h2>실패 없는 한 끼<br>Top 3</h2><p class="lead">선택한 예산과 장소·가격·리뷰 정보를 바탕으로 골랐어요.</p></div></div><div id="cards"></div><button class="secondary" style="width:100%;margin-top:8px" onclick="shuffle()">↻ 다른 3곳 후보 보기</button><p class="trust">가격과 대기 정보는 Google 지도·매장 상세에서 최종 확인해 주세요.</p></section>
   <div class="toast" id="toast"></div>
 </main><script src="./enhancements.js"></script><script>
-const tasteQuestions = [
-  { question: '오늘은 어느 쪽이 더 끌리나요?', a: { label: '정갈한 일식', description: '담백하고 섬세한 한 끼', icon: '🍣', group: 'menu', value: '일식' }, b: { label: '든든한 한식', description: '익숙하고 따뜻한 한 끼', icon: '🍲', group: 'menu', value: '한식' } },
-  { question: '식사 공간은 어떤 쪽인가요?', a: { label: '가볍고 캐주얼한 곳', description: '편하게 이야기하기 좋은 분위기', icon: '✨', group: 'mood', value: '캐주얼한' }, b: { label: '차분하고 조용한 곳', description: '대화에 집중하기 좋은 분위기', icon: '🌿', group: 'mood', value: '조용한' } },
-  { question: '식사 후에는 어떻게 하고 싶나요?', a: { label: '바로 다음 일정으로', description: '빠르게 식사하기 좋은 선택', icon: '⚡', group: 'wait', value: '기다리기 어려워요' }, b: { label: '천천히 대화하며', description: '여유 있게 즐기는 선택', icon: '☕', group: 'wait', value: '기다릴 수 있어요' } },
-];
-let question = 0;
+const foodParticipants = [
+  ['중식 (짜장·짬뽕)', '중식'], ['김밥·라면', '면/국밥'], ['냉면', '면/국밥'], ['국밥', '면/국밥'],
+  ['제육', '한식'], ['치킨', '고기/구이'], ['햄버거', '양식'], ['피자', '양식'],
+  ['초밥', '일식'], ['돈부리', '일식'], ['떡볶이', '한식'], ['쌀국수', '동남아'],
+  ['브런치', '카페/브런치'], ['라멘', '일식'], ['김치찌개', '한식'], ['삼겹살', '고기/구이'],
+].map(([name, menu], index) => ({ name, menu, image: `./images/participant-${String(index + 1).padStart(2, '0')}.jpg` }));
+const foodCandidates = [...document.querySelectorAll('.food-candidate')];
+let foodRound = [];
+let foodMatchIndex = 0;
+let foodWinners = [];
+let foodChoicesMade = 0;
+let tournamentWinner = null;
 
 function go(id) {
+  if (id === 'tournament') startFoodTournament();
+  if (id === 'taste') tournamentWinner = null;
   if (id === 'results') {
+    if (tournamentWinner) applyTasteAnswer({ group: 'menu', value: tournamentWinner.menu });
     const menus = document.querySelectorAll('[data-group="menu"] .chip.selected');
     const moods = document.querySelectorAll('[data-group="mood"] .chip.selected');
     if (!menus.length || !moods.length) {
@@ -75,28 +85,56 @@ function applyTasteAnswer(answer) {
   chip.classList.add('selected');
 }
 
-function showQuestion() {
-  const current = tasteQuestions[question];
-  document.getElementById('qcount').textContent = `취향 찾기 ${question + 1} / ${tasteQuestions.length}`;
-  document.getElementById('question').innerHTML = current.question.replace(' ', '<br>');
-  ['a', 'b'].forEach((key, index) => {
-    const choice = current[key];
-    document.getElementById(key).textContent = choice.label;
-    document.getElementById(`${key}Description`).textContent = choice.description;
-    document.querySelectorAll('.choice .icon')[index].textContent = choice.icon;
+function shuffleFood(items) { return [...items].sort(() => Math.random() - 0.5); }
+function foodRoundName(count) { return count === 2 ? '결승' : `${count}강`; }
+
+function startFoodTournament() {
+  foodRound = shuffleFood(foodParticipants);
+  foodMatchIndex = 0;
+  foodWinners = [];
+  foodChoicesMade = 0;
+  tournamentWinner = null;
+  document.getElementById('foodGame').classList.remove('hidden');
+  document.getElementById('foodWinner').classList.add('hidden');
+  renderFoodMatch();
+}
+
+function renderFoodMatch() {
+  const left = foodRound[foodMatchIndex * 2];
+  const right = foodRound[foodMatchIndex * 2 + 1];
+  document.getElementById('foodRound').textContent = foodRoundName(foodRound.length);
+  document.getElementById('foodMatch').textContent = `${foodMatchIndex + 1} / ${foodRound.length / 2}`;
+  document.getElementById('foodProgressBar').style.width = `${(foodChoicesMade / 15) * 100}%`;
+  [left, right].forEach((food, index) => {
+    const button = foodCandidates[index];
+    button.querySelector('img').src = food.image;
+    button.querySelector('img').alt = food.name;
+    button.querySelector('strong').textContent = food.name;
   });
 }
 
-function nextQuestion(answerKey) {
-  if (answerKey !== 'skip') applyTasteAnswer(tasteQuestions[question][answerKey]);
-  question += 1;
-  if (question >= tasteQuestions.length) {
-    question = 0;
-    go('results');
-    return;
-  }
-  showQuestion();
+function chooseFood(event) {
+  foodWinners.push(foodRound[foodMatchIndex * 2 + Number(event.currentTarget.dataset.foodIndex)]);
+  foodMatchIndex += 1;
+  foodChoicesMade += 1;
+  if (foodMatchIndex < foodRound.length / 2) return renderFoodMatch();
+  if (foodWinners.length === 1) return showFoodWinner(foodWinners[0]);
+  foodRound = foodWinners;
+  foodWinners = [];
+  foodMatchIndex = 0;
+  renderFoodMatch();
 }
+
+function showFoodWinner(food) {
+  tournamentWinner = food;
+  document.getElementById('foodGame').classList.add('hidden');
+  document.getElementById('foodWinner').classList.remove('hidden');
+  document.getElementById('foodWinnerImage').src = food.image;
+  document.getElementById('foodWinnerImage').alt = food.name;
+  document.getElementById('foodWinnerName').textContent = food.name;
+}
+
+foodCandidates.forEach((button) => button.addEventListener('click', chooseFood));
 
 function toast(message) {
   const toastElement = document.getElementById('toast');
