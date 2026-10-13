@@ -86,8 +86,10 @@
     const mood = selectedText("mood", "");
     const budget = selectedText("budget", "1~2만원");
     document.getElementById("summaryArea").textContent = area || "지역 입력 필요";
-    document.getElementById("summaryWait").textContent = `${people}명 · ${budget}`;
-    document.getElementById("summaryTaste").textContent = `${mood ? `${mood} ` : ""}${menu}`;
+    document.getElementById("summaryPeople").textContent = `${people}명`;
+    document.getElementById("summaryBudget").textContent = budget;
+    document.getElementById("summaryMenu").textContent = menu;
+    document.getElementById("summaryMood").textContent = mood || "상관없음";
 
     saveSearchState({ area, people: String(people), menu, budget });
 
