@@ -26,6 +26,28 @@ function compactReviews(reviews) {
   return (reviews ?? []).slice(0, 3).map((review) => cleanText(review.text?.text || review.originalText?.text).slice(0, 280)).filter(Boolean);
 }
 
+async function resolvePlacePhoto(photo, apiKey) {
+  const name = cleanText(photo?.name);
+  if (!/^places\/[^/]+\/photos\/[^/]+$/.test(name)) return null;
+
+  try {
+    const url = new URL(`https://places.googleapis.com/v1/${name}/media`);
+    url.searchParams.set("maxWidthPx", "480");
+    url.searchParams.set("maxHeightPx", "360");
+    url.searchParams.set("skipHttpRedirect", "true");
+    const response = await fetch(url, { headers: { "X-Goog-Api-Key": apiKey } });
+    if (!response.ok) return null;
+    const payload = await response.json();
+    const attribution = photo.authorAttributions?.[0];
+    return {
+      url: typeof payload.photoUri === "string" ? payload.photoUri : null,
+      attribution: attribution?.displayName ? { name: cleanText(attribution.displayName), uri: attribution.uri || "" } : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function fallbackInsight(place) {
   const summary = cleanText(place.generativeSummary?.overview || place.editorialSummary?.text);
   return { reason: summary || "선택한 지역과 메뉴 조건에 맞는 Google Places 검색 결과예요.", mainMenu: summary || cleanText(place.primaryTypeDisplayName?.text) || "Google 지도에서 메뉴 확인", waiting: "리뷰에서 대기 정보 확인 불가" };
@@ -80,7 +102,7 @@ module.exports = async function handler(req, res) {
       method: "POST",
       headers: {
         "Content-Type": "application/json", "X-Goog-Api-Key": placesApiKey,
-        "X-Goog-FieldMask": ["places.id", "places.displayName", "places.formattedAddress", "places.location", "places.googleMapsUri", "places.primaryTypeDisplayName", "places.types", "places.priceLevel", "places.priceRange", "places.rating", "places.userRatingCount", "places.currentOpeningHours", "places.generativeSummary", "places.editorialSummary", "places.reviews"].join(","),
+        "X-Goog-FieldMask": ["places.id", "places.displayName", "places.formattedAddress", "places.location", "places.googleMapsUri", "places.primaryTypeDisplayName", "places.types", "places.priceLevel", "places.priceRange", "places.rating", "places.userRatingCount", "places.currentOpeningHours", "places.generativeSummary", "places.editorialSummary", "places.reviews", "places.photos"].join(","),
       },
       body: JSON.stringify({ textQuery: `${area} ${conditions.menus.map(searchMenuName).join(" 또는 ")} 음식점`, languageCode: "ko", maxResultCount: 8 }),
     });
@@ -92,8 +114,9 @@ module.exports = async function handler(req, res) {
       rating: place.rating ?? null, userRatingCount: place.userRatingCount ?? null, price: priceLabel(place.priceLevel, place.priceRange), openNow: place.currentOpeningHours?.openNow,
       summary: cleanText(place.generativeSummary?.overview || place.editorialSummary?.text), types: place.types ?? [], reviews: compactReviews(place.reviews),
     }));
+    const photos = await Promise.all(normalized.map((restaurant) => resolvePlacePhoto(restaurant.source.photos?.[0], placesApiKey)));
     const insights = await generateInsights(normalized, conditions, geminiApiKey);
-    const restaurants = normalized.map(({ source, summary, types, reviews, ...restaurant }, index) => ({ ...restaurant, ...insights[index] }));
+    const restaurants = normalized.map(({ source, summary, types, reviews, ...restaurant }, index) => ({ ...restaurant, ...insights[index], photo: photos[index] }));
     res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
     return res.status(200).json({ area, conditions, restaurants, sources: { places: "Google Places API (New)", gemini: Boolean(geminiApiKey) } });
   } catch (error) {
