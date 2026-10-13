@@ -27,12 +27,15 @@ function priceBounds(priceRange) {
   return { min: Math.min(start, end), max: Math.max(start, end) };
 }
 
-function matchesBudget(place, budget) {
+function budgetMatchScore(place, budget) {
   const filter = BUDGET_FILTERS[budget];
-  if (!filter) return true;
+  if (!filter) return 2;
   const bounds = priceBounds(place.priceRange);
-  // 가격 등급은 넓은 범주이므로, 카드에 표시할 실제 Google Places 가격 범위도 반드시 일치시킨다.
-  return Boolean(bounds && bounds.min >= filter.min && bounds.max <= filter.max);
+  // Text Search 요청에는 priceLevels를 넣지 않는다. Google의 넓은 가격 등급보다
+  // 실제 응답의 가격 범위를 우선하며, 예산 구간과 조금이라도 겹치면 후보로 유지한다.
+  // 가격 범위가 비어 있는 곳은 정확한 가격 범위 후보 뒤에만 보조 후보로 사용한다.
+  if (!bounds) return 1;
+  return bounds.max >= filter.min && bounds.min <= filter.max ? 2 : 0;
 }
 
 function priceLabel(priceLevel, priceRange) {
@@ -134,7 +137,14 @@ module.exports = async function handler(req, res) {
     });
     if (!response.ok) { const errorPayload = await response.text(); throw new Error(`Google Places Text Search failed: ${response.status} ${errorPayload.slice(0, 240)}`); }
     const places = (await response.json()).places ?? [];
-    const normalized = places.filter((place) => place.displayName?.text && place.location && matchesBudget(place, budget)).slice(0, 3).map((place) => ({
+    const budgetMatchedPlaces = places
+      .filter((place) => place.displayName?.text && place.location)
+      .map((place) => ({ place, budgetScore: budgetMatchScore(place, budget) }))
+      .filter(({ budgetScore }) => budgetScore > 0)
+      .sort((a, b) => b.budgetScore - a.budgetScore)
+      .slice(0, 3)
+      .map(({ place }) => place);
+    const normalized = budgetMatchedPlaces.map((place) => ({
       source: place, name: cleanText(place.displayName?.text), category: cleanText(place.primaryTypeDisplayName?.text) || "음식점", address: cleanText(place.formattedAddress), latitude: place.location.latitude, longitude: place.location.longitude,
       googleMapsUri: place.googleMapsUri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.displayName?.text} ${place.formattedAddress || area}`)}`,
       rating: place.rating ?? null, userRatingCount: place.userRatingCount ?? null, price: priceLabel(place.priceLevel, place.priceRange), openNow: place.currentOpeningHours?.openNow,
