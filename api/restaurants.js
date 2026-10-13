@@ -1,6 +1,13 @@
 const NAVER_API_HUB_LOCAL_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/search/v1/local";
 const NAVER_API_HUB_BLOG_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/search/v1/blog";
 const NAVER_API_HUB_IMAGE_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/search/v1/image";
+const GOOGLE_PLACES_TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
+const GOOGLE_PRICE_LEVELS = {
+  PRICE_LEVEL_INEXPENSIVE: { label: "저가", budgets: ["1만원 이하", "1~2만원"] },
+  PRICE_LEVEL_MODERATE: { label: "중간", budgets: ["1~2만원", "2~3만원"] },
+  PRICE_LEVEL_EXPENSIVE: { label: "고가", budgets: ["2~3만원", "3만원 이상"] },
+  PRICE_LEVEL_VERY_EXPENSIVE: { label: "매우 고가", budgets: ["3만원 이상"] },
+};
 const CHECKPOINT_RULES = [
   { label: "예약 필요", pattern: /예약\s*(필수|필요|권장|추천)|(?:미리|사전)\s*예약|캐치테이블|네이버\s*예약|예약제/i },
   { label: "웨이팅 가능", pattern: /웨이팅|대기\s*(?:필수|있|가능|줄)|줄\s*(?:서는|서야|서서)|오픈런/i },
@@ -125,6 +132,41 @@ async function fetchRestaurantImage({ area, name, clientId, clientSecret }) {
   }
 }
 
+function normalizePlaceName(value = "") {
+  return String(value).toLowerCase().replace(/[^a-z0-9가-힣]/g, "");
+}
+
+function isLikelySamePlace(restaurantName, googleName) {
+  const restaurant = normalizePlaceName(restaurantName);
+  const google = normalizePlaceName(googleName);
+  return restaurant.length >= 2 && google.length >= 2 && (restaurant.includes(google) || google.includes(restaurant));
+}
+
+async function fetchGooglePlacePrice({ area, name, menu, apiKey }) {
+  try {
+    const response = await fetch(GOOGLE_PLACES_TEXT_SEARCH_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask": "places.displayName,places.priceLevel",
+      },
+      body: JSON.stringify({ textQuery: `${name} ${area} ${menu}`, pageSize: 1, languageCode: "ko" }),
+    });
+    if (!response.ok) {
+      console.warn(`Google Places price search failed with status ${response.status}.`);
+      return null;
+    }
+
+    const place = (await response.json()).places?.[0];
+    if (!place?.priceLevel || !isLikelySamePlace(name, place.displayName?.text)) return null;
+    return GOOGLE_PRICE_LEVELS[place.priceLevel] ? place.priceLevel : null;
+  } catch (error) {
+    console.warn("Google Places price search failed.", error instanceof Error ? error.message : "Unknown error");
+    return null;
+  }
+}
+
 function budgetRange(label) {
   const ranges = {
     "1만원 이하": { min: 0, max: 10000 },
@@ -178,6 +220,11 @@ module.exports = async function restaurants(request, response) {
     console.error("NAVER API HUB Search credentials are not configured.");
     return sendError(response, 500, "SERVER_CONFIGURATION_ERROR", "검색 서비스를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.");
   }
+  const googlePlacesApiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!googlePlacesApiKey) {
+    console.error("Google Places API key is not configured.");
+    return sendError(response, 500, "GOOGLE_PLACES_NOT_CONFIGURED", "가격 필터 서비스를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.");
+  }
 
   try {
     const searchKeyword = `${area} ${menu} 맛집`;
@@ -214,17 +261,32 @@ module.exports = async function restaurants(request, response) {
         priceNote: "네이버 지역 검색 결과에는 메뉴 가격 정보가 없어 예산 적합 여부를 확인할 수 없어요.",
       };
     });
-    const results = await Promise.all(baseResults.map(async (restaurant) => {
-      const [checkpoints, thumbnail] = await Promise.all([
+    const enrichedResults = await Promise.all(baseResults.map(async (restaurant) => {
+      const [checkpoints, thumbnail, googlePriceLevel] = await Promise.all([
         fetchRestaurantCheckpoints({ area, name: restaurant.name, clientId, clientSecret }),
         fetchRestaurantImage({ area, name: restaurant.name, clientId, clientSecret }),
+        fetchGooglePlacePrice({ area, name: restaurant.name, menu, apiKey: googlePlacesApiKey }),
       ]);
-      return { ...restaurant, checkpoints, thumbnail };
+      const googlePrice = GOOGLE_PRICE_LEVELS[googlePriceLevel];
+      return {
+        ...restaurant,
+        checkpoints,
+        thumbnail,
+        googlePriceLevel: googlePriceLevel || null,
+        priceStatus: googlePrice ? `Google 가격: ${googlePrice.label}` : "Google 가격 정보 없음",
+        priceNote: googlePrice
+          ? "Google Places 가격 등급을 기준으로 1인 예산 조건을 확인했어요."
+          : "Google Places 가격 등급을 확인하지 못해 예산 필터에서 제외했어요.",
+      };
     }));
+    const results = enrichedResults.filter((restaurant) => (
+      restaurant.googlePriceLevel && GOOGLE_PRICE_LEVELS[restaurant.googlePriceLevel].budgets.includes(budget)
+    ));
 
     return sendJson(response, 200, {
       query: { area, menu, searchKeyword, budget, people, perPersonBudget: range, totalBudget: { min: range.min * people, max: range.max === null ? null : range.max * people } },
-      priceDataAvailable: false,
+      priceDataAvailable: true,
+      priceFilter: { source: "Google Places", candidateCount: baseResults.length, matchedCount: results.length },
       results,
     });
   } catch (error) {
@@ -234,3 +296,4 @@ module.exports = async function restaurants(request, response) {
 };
 
 module.exports.extractCheckpoints = extractCheckpoints;
+module.exports.isLikelySamePlace = isLikelySamePlace;

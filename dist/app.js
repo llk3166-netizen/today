@@ -75,6 +75,7 @@
       NAVER_SEARCH_FAILED: "네이버 검색 결과를 가져오지 못했어요. 잠시 후 다시 시도해 주세요.",
       NAVER_NETWORK_ERROR: "네이버 검색 서비스에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.",
       SERVER_CONFIGURATION_ERROR: "검색 서비스를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.",
+      GOOGLE_PLACES_NOT_CONFIGURED: "가격 필터 서비스를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.",
       INVALID_AREA: "검색할 지역을 입력해 주세요.",
     };
     return messages[code] || "검색 서버에 연결하지 못했어요. 네트워크 상태를 확인한 뒤 다시 시도해 주세요.";
@@ -130,7 +131,10 @@
       }
 
       const { perPerson, total } = formatBudget(payload.query.perPersonBudget, people);
-      const budgetPanel = `<section class="restaurant" style="background:#fff7f7;border-color:#ffd5d7"><strong>${people}명 식사 예산</strong><p class="lead" style="margin:7px 0 0">1인 ${escapeHtml(perPerson)} · 총 ${escapeHtml(total)}</p><p class="meta" style="margin:7px 0 0">가격 정보가 없는 결과는 예산 적합 여부를 확정할 수 없어요.</p></section>`;
+      const priceFilterSummary = payload.priceFilter
+        ? `네이버 후보 ${payload.priceFilter.candidateCount}곳 중 Google Places 가격 등급이 1인 예산과 맞는 ${payload.priceFilter.matchedCount}곳만 보여줘요.`
+        : "Google Places 가격 등급으로 1인 예산을 확인하고 있어요.";
+      const budgetPanel = `<section class="restaurant" style="background:#fff7f7;border-color:#ffd5d7"><strong>${people}명 식사 예산</strong><p class="lead" style="margin:7px 0 0">1인 ${escapeHtml(perPerson)} · 총 ${escapeHtml(total)}</p><p class="meta" style="margin:7px 0 0">${escapeHtml(priceFilterSummary)}</p></section>`;
 
       if (!payload.results?.length) {
         setCards(`${budgetPanel}<section class="restaurant"><strong>조건에 맞는 식당을 찾지 못했어요.</strong><p class="lead" style="margin:8px 0 0">지역명을 조금 넓히거나 메뉴를 바꿔 다시 검색해 보세요.</p></section>`);
@@ -147,7 +151,7 @@
           : '<div class="food" aria-hidden="true" style="display:grid;place-items:center;font-size:27px">🍽️</div>';
         return `<article class="restaurant"><div class="rank"><b>${index + 1}순위</b><span class="score">${escapeHtml(restaurant.priceStatus)}</span></div><div class="info">${thumbnail}<div><div class="meta">${escapeHtml(restaurant.category || "음식점")}</div><div class="name">${escapeHtml(restaurant.name)}</div></div></div>${checkpointInfo}<div class="actions">${mapUrl ? `<a class="save" style="display:grid;place-items:center;text-decoration:none" target="_blank" rel="noopener noreferrer" href="${escapeHtml(mapUrl)}" aria-label="${escapeHtml(restaurant.mapSearchQuery || `${area} ${restaurant.name}`)} 네이버 지도에서 보기">네이버 지도에서 보기</a>` : '<span class="secondary" style="display:grid;place-items:center;color:#69666a">지도 링크 없음</span>'}</div></article>`;
       }).join("");
-      setCards(`${budgetPanel}<p class="meta" style="margin:12px 2px">네이버 지역 검색의 관련도 순서입니다. 가격 정보가 확인되는 식당이 없어서 가격 기준 정렬은 보류했어요.</p>${cards}`);
+      setCards(`${budgetPanel}<p class="meta" style="margin:12px 2px">네이버 지역 검색의 관련도 순서이며, Google Places 가격 등급으로 1인 예산 조건을 필터링했어요.</p>${cards}`);
     } catch (error) {
       const message = error instanceof TypeError
         ? "검색 서버에 연결하지 못했어요. 네트워크 상태를 확인한 뒤 다시 시도해 주세요."
