@@ -18,6 +18,10 @@ function selectedValues(group) {
   return [...document.querySelectorAll(`[data-group="${group}"] .selected`)].map((item) => item.textContent.trim());
 }
 
+function selectedValue(group, fallback) {
+  return document.querySelector(`[data-group="${group}"] .selected`)?.textContent.trim() || fallback;
+}
+
 function loadNaverMapsSdk() {
   if (window.naver?.maps || naverMapsLoading) return;
   if (!window.NAVER_MAPS_CLIENT_ID || window.NAVER_MAPS_CLIENT_ID === "YOUR_NAVER_MAPS_CLIENT_ID") return;
@@ -88,17 +92,28 @@ window.addEventListener("DOMContentLoaded", () => {
     const area = document.getElementById("area").value.trim() || "성수동";
     const menus = selectedValues("menu");
     const moods = selectedValues("mood");
-    const waiting = document.querySelector('[data-group="wait"] .selected')?.textContent || "상관없어요";
+    const waiting = selectedValue("wait", "상관없어요");
+    const budget = selectedValue("budget", "예산 상관없음");
+    const purpose = selectedValue("purpose", "식사");
     const cards = document.getElementById("cards");
     const requestId = ++searchRequestId;
     document.getElementById("summaryArea").textContent = area;
+    document.querySelector(".place").textContent = `⌖ ${area}⌄`;
+    document.querySelector("#results .summary span:nth-child(2)").textContent = budget;
     document.getElementById("summaryWait").textContent = waiting;
     document.getElementById("summaryTaste").textContent = `${moods[0] || "캐주얼한"} ${menus[0] || "일식"}`;
-    cards.innerHTML = `<p class="lead" role="status">${escapeHtml(area)}의 식당을 찾고 있어요…</p>`;
+    cards.innerHTML = `<p class="lead" role="status">${escapeHtml(area)}에서 ${escapeHtml((menus.length ? menus : ["맛집"]).join(", "))} 조건의 식당을 찾고 있어요…</p>`;
     document.getElementById("restaurant-map")?.remove();
 
     try {
-      const search = new URLSearchParams({ area, menu: menus[0] || "맛집" });
+      const search = new URLSearchParams({
+        area,
+        menus: (menus.length ? menus : ["맛집"]).join(","),
+        moods: moods.join(","),
+        budget,
+        purpose,
+        waiting,
+      });
       const response = await fetch(`/api/restaurants?${search}`);
       const payload = await response.json();
       if (requestId !== searchRequestId) return;
@@ -110,8 +125,8 @@ window.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      cards.innerHTML = currentRestaurants.map((restaurant, index) => `<article class="restaurant"><div class="rank"><b>TOP ${index + 1}</b><span class="score">네이버 검색 결과</span></div><div class="info"><img class="food" src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=300&q=80" alt="음식 이미지"><div><div class="meta">${escapeHtml(restaurant.category)}</div><div class="name">${escapeHtml(restaurant.name)}</div><div class="tags"><span>${escapeHtml(restaurant.address || area)}</span></div></div></div><div class="reason"><strong>✓ ${escapeHtml(area)}에서 찾은 추천 식당</strong><ul><li>${escapeHtml(menus[0] || "맛집")} 검색 결과를 반영했어요.</li><li>방문 전 영업 시간과 대기 정보를 확인해 주세요.</li></ul></div><div class="actions"><button class="secondary" onclick="openRestaurantMap(${index})">네이버 지도</button><button class="save" onclick="saveRestaurant(${index})">♡ 후보로 담기</button></div></article>`).join("");
-      cards.insertAdjacentHTML("afterend", `<section id="restaurant-map" style="margin-top:20px;padding:16px;border:1px solid #e9e1df;border-radius:20px;background:#fff"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px"><strong style="font-size:15px">Top 3 위치 보기</strong><span style="font-size:11px;color:#69666a">${escapeHtml(area)} 검색 결과</span></div><div id="naver-map" role="region" aria-label="추천 식당 네이버 지도" style="height:270px;border-radius:14px;overflow:hidden;background:#f7f4f4"></div></section>`);
+      cards.innerHTML = currentRestaurants.map((restaurant, index) => `<article class="restaurant"><div class="rank"><b>TOP ${index + 1}</b><span class="score">네이버 리뷰 우선</span></div><div class="info"><img class="food" src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=300&q=80" alt="음식 이미지"><div><div class="meta">${escapeHtml(restaurant.category)}</div><div class="name">${escapeHtml(restaurant.name)}</div><div class="tags"><span>${escapeHtml(restaurant.address || area)}</span></div></div></div><div class="reason"><strong>✓ 선택 조건으로 구성한 추천 이유</strong><ul><li>${escapeHtml(area)}의 ${escapeHtml(restaurant.matchedMenu || "맛집")} 검색 결과예요.</li><li>${escapeHtml(purpose)} 목적 · ${escapeHtml(moods.join(" · ") || "분위기 상관없음")} 분위기 선호를 함께 확인해 보세요.</li><li>${escapeHtml(budget)} 예산 · ${escapeHtml(waiting)} 조건은 매장 상세에서 최종 확인해 주세요.</li></ul></div><div class="actions"><button class="secondary" onclick="openRestaurantMap(${index})">네이버 지도</button><button class="save" onclick="saveRestaurant(${index})">♡ 후보로 담기</button></div></article>`).join("");
+      cards.insertAdjacentHTML("afterend", `<section id="restaurant-map" style="margin-top:20px;padding:16px;border:1px solid #e9e1df;border-radius:20px;background:#fff"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px"><strong style="font-size:15px">Top 3 위치 보기</strong><span style="font-size:11px;color:#69666a">${escapeHtml(area)} · ${escapeHtml((menus.length ? menus : ["맛집"]).join(", "))}</span></div><div id="naver-map" role="region" aria-label="추천 식당 네이버 지도" style="height:270px;border-radius:14px;overflow:hidden;background:#f7f4f4"></div></section>`);
       renderNaverMap();
     } catch (error) {
       if (requestId !== searchRequestId) return;
