@@ -1,5 +1,6 @@
 const NAVER_API_HUB_LOCAL_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/search/v1/local";
 const NAVER_API_HUB_BLOG_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/search/v1/blog";
+const NAVER_API_HUB_IMAGE_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/search/v1/image";
 const CHECKPOINT_RULES = [
   { label: "예약 필요", pattern: /예약\s*(필수|필요|권장|추천)|(?:미리|사전)\s*예약|캐치테이블|네이버\s*예약|예약제/i },
   { label: "웨이팅 가능", pattern: /웨이팅|대기\s*(?:필수|있|가능|줄)|줄\s*(?:서는|서야|서서)|오픈런/i },
@@ -93,6 +94,37 @@ async function fetchRestaurantCheckpoints({ area, name, clientId, clientSecret }
   }
 }
 
+function safeImageUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchRestaurantImage({ area, name, clientId, clientSecret }) {
+  try {
+    const url = new URL(NAVER_API_HUB_IMAGE_SEARCH_URL);
+    url.searchParams.set("query", `${area} ${name}`);
+    url.searchParams.set("display", "1");
+    url.searchParams.set("start", "1");
+    url.searchParams.set("sort", "sim");
+    url.searchParams.set("filter", "all");
+    url.searchParams.set("format", "json");
+    const response = await fetch(url, { headers: naverHeaders(clientId, clientSecret) });
+    if (!response.ok) {
+      console.warn(`Naver image search failed with status ${response.status}.`);
+      return null;
+    }
+    const payload = await response.json();
+    return safeImageUrl(payload.items?.[0]?.thumbnail);
+  } catch (error) {
+    console.warn("Naver image search failed.", error instanceof Error ? error.message : "Unknown error");
+    return null;
+  }
+}
+
 function budgetRange(label) {
   const ranges = {
     "1만원 이하": { min: 0, max: 10000 },
@@ -182,10 +214,13 @@ module.exports = async function restaurants(request, response) {
         priceNote: "네이버 지역 검색 결과에는 메뉴 가격 정보가 없어 예산 적합 여부를 확인할 수 없어요.",
       };
     });
-    const results = await Promise.all(baseResults.map(async (restaurant) => ({
-      ...restaurant,
-      checkpoints: await fetchRestaurantCheckpoints({ area, name: restaurant.name, clientId, clientSecret }),
-    })));
+    const results = await Promise.all(baseResults.map(async (restaurant) => {
+      const [checkpoints, thumbnail] = await Promise.all([
+        fetchRestaurantCheckpoints({ area, name: restaurant.name, clientId, clientSecret }),
+        fetchRestaurantImage({ area, name: restaurant.name, clientId, clientSecret }),
+      ]);
+      return { ...restaurant, checkpoints, thumbnail };
+    }));
 
     return sendJson(response, 200, {
       query: { area, menu, searchKeyword, budget, people, perPersonBudget: range, totalBudget: { min: range.min * people, max: range.max === null ? null : range.max * people } },

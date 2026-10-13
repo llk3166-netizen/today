@@ -49,7 +49,9 @@ test("returns normalized restaurants through the server endpoint", async () => {
     ok: true,
     json: async () => url.pathname === "/search/v1/local"
       ? { items: [{ title: "<b>성수</b> 식당", category: "음식점>일식", address: "서울 성동구 성수동", roadAddress: "서울 성동구 성수이로 1", telephone: "02-1234-5678" }] }
-      : { items: [{ title: "성수 식당", description: "캐치테이블 예약 필수, 브레이크 타임과 주차 가능 여부를 확인하세요." }] },
+      : url.pathname === "/search/v1/image"
+        ? { items: [{ thumbnail: "https://images.example.com/restaurant.jpg" }] }
+        : { items: [{ title: "성수 식당", description: "캐치테이블 예약 필수, 브레이크 타임과 주차 가능 여부를 확인하세요." }] },
   }), async (getFetchRequests) => {
     await restaurants(request(), response);
     const fetchRequest = getFetchRequests().find((item) => item.url.pathname === "/search/v1/local");
@@ -63,6 +65,7 @@ test("returns normalized restaurants through the server endpoint", async () => {
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.body.results[0].name, "성수 식당");
+  assert.equal(response.body.results[0].thumbnail, "https://images.example.com/restaurant.jpg");
   assert.deepEqual(response.body.results[0].checkpoints, ["예약 필요", "브레이크 타임", "주차 확인"]);
   assert.equal(response.body.query.searchKeyword, "성수동 일식 맛집");
 });
