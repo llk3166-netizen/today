@@ -80,18 +80,22 @@
   }
 
   async function renderRecommendations() {
+    const searchState = readSearchState();
+    const isTournamentSearch = searchState.mode === "tournament";
     const area = document.getElementById("area").value.trim();
     const people = Math.min(50, Math.max(1, Number.parseInt(document.getElementById("people").value, 10) || 1));
-    const menu = selectedText("menu", "맛집");
+    const menu = isTournamentSearch && searchState.tournamentMenu
+      ? searchState.tournamentMenu
+      : selectedText("menu", "맛집");
     const mood = selectedText("mood", "");
     const budget = selectedText("budget", "1~2만원");
     document.getElementById("summaryArea").textContent = area || "지역 입력 필요";
     document.getElementById("summaryPeople").textContent = `${people}명`;
     document.getElementById("summaryBudget").textContent = budget;
     document.getElementById("summaryMenu").textContent = menu;
-    document.getElementById("summaryMood").textContent = mood || "상관없음";
+    document.getElementById("summaryMood").textContent = isTournamentSearch ? "미선택" : mood || "상관없음";
 
-    saveSearchState({ area, people: String(people), menu, budget });
+    saveSearchState({ ...searchState, area, people: String(people), menu, budget });
 
     if (!area) {
       setCards('<section class="restaurant"><strong>지역을 입력해 주세요.</strong><p class="lead" style="margin:8px 0 0">예: 성수동, 광화문, 해운대</p></section>');
@@ -143,6 +147,16 @@
   window.render = renderRecommendations;
   window.shuffle = renderRecommendations;
   window.go = function goToScreen(id) {
+    if (id === "tournament") {
+      saveSearchState({ ...readSearchState(), mode: "tournament" });
+    }
+    if (id === "taste") {
+      saveSearchState({ ...readSearchState(), mode: "direct", tournamentMenu: "" });
+    }
+    if (id === "results" && readSearchState().mode === "tournament") {
+      const tournamentMenu = document.getElementById("foodWinnerName")?.textContent?.trim();
+      if (tournamentMenu) saveSearchState({ ...readSearchState(), tournamentMenu });
+    }
     document.querySelectorAll(".screen").forEach((screen) => screen.classList.remove("active"));
     document.getElementById(id)?.classList.add("active");
     window.scrollTo(0, 0);
