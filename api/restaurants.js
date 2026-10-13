@@ -14,10 +14,10 @@ function searchMenuName(menu) {
 }
 
 const BUDGET_FILTERS = {
-  "1만원 이하": { min: 0, max: 10000, priceLevels: ["PRICE_LEVEL_INEXPENSIVE"] },
-  "1~2만원": { min: 10000, max: 20000, priceLevels: ["PRICE_LEVEL_INEXPENSIVE", "PRICE_LEVEL_MODERATE"] },
-  "2~3만원": { min: 20000, max: 30000, priceLevels: ["PRICE_LEVEL_MODERATE", "PRICE_LEVEL_EXPENSIVE"] },
-  "3만원 이상": { min: 30000, max: Number.POSITIVE_INFINITY, priceLevels: ["PRICE_LEVEL_EXPENSIVE", "PRICE_LEVEL_VERY_EXPENSIVE"] },
+  "1만원 이하": { min: 0, max: 10000 },
+  "1~2만원": { min: 10000, max: 20000 },
+  "2~3만원": { min: 20000, max: 30000 },
+  "3만원 이상": { min: 30000, max: Number.POSITIVE_INFINITY },
 };
 
 function priceBounds(priceRange) {
@@ -130,7 +130,6 @@ module.exports = async function handler(req, res) {
         textQuery: `${area} ${conditions.menus.map(searchMenuName).join(" 또는 ")} 음식점`,
         languageCode: "ko",
         maxResultCount: 20,
-        ...(BUDGET_FILTERS[budget] ? { priceLevels: BUDGET_FILTERS[budget].priceLevels } : {}),
       }),
     });
     if (!response.ok) { const errorPayload = await response.text(); throw new Error(`Google Places Text Search failed: ${response.status} ${errorPayload.slice(0, 240)}`); }
