@@ -1,5 +1,7 @@
 let currentRestaurants = [];
 let searchRequestId = 0;
+let shownRestaurantIds = new Set();
+let activeSearchKey = "";
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#039;");
@@ -23,6 +25,11 @@ window.addEventListener("DOMContentLoaded", () => {
     const area = document.getElementById("area").value.trim() || "성수동";
     const menus = selectedValues("menu"); const moods = selectedValues("mood");
     const waiting = selectedValue("wait", "상관없어요"); const budget = selectedValue("budget", "예산 상관없음"); const purpose = selectedValue("purpose", "식사");
+    const searchKey = JSON.stringify({ area, menus, moods, waiting, budget, purpose });
+    if (searchKey !== activeSearchKey) {
+      activeSearchKey = searchKey;
+      shownRestaurantIds = new Set();
+    }
     const cards = document.getElementById("cards"); const requestId = ++searchRequestId;
     document.getElementById("summaryArea").textContent = area;
     document.querySelector(".place").textContent = `⌖ ${area}⌄`;
@@ -31,12 +38,13 @@ window.addEventListener("DOMContentLoaded", () => {
     document.getElementById("summaryTaste").textContent = `${moods[0] || "캐주얼한"} ${menus[0] || "맛집"}`;
     cards.innerHTML = `<p class="lead" role="status">Google Places에서 ${escapeHtml(area)}의 식당과 상세 정보를 찾고 있어요…</p>`;
     try {
-      const search = new URLSearchParams({ area, menus: (menus.length ? menus : ["맛집"]).join(","), moods: moods.join(","), budget, purpose, waiting });
+      const search = new URLSearchParams({ area, menus: (menus.length ? menus : ["맛집"]).join(","), moods: moods.join(","), budget, purpose, waiting, excludePlaceIds: [...shownRestaurantIds].join(",") });
       const response = await fetch(`/api/restaurants?${search}`); const payload = await response.json();
       if (requestId !== searchRequestId) return;
       if (!response.ok) throw new Error(payload.error || "식당을 찾지 못했어요.");
       currentRestaurants = payload.restaurants || [];
-      if (!currentRestaurants.length) { cards.innerHTML = `<p class="lead">${escapeHtml(area)}에서 조건에 맞는 식당을 찾지 못했어요. 지역 또는 메뉴를 바꿔 다시 검색해 주세요.</p>`; return; }
+      if (!currentRestaurants.length) { cards.innerHTML = `<p class="lead">이미 제안한 곳을 제외하면 ${escapeHtml(area)}에서 더 찾을 식당이 없어요. 지역이나 메뉴를 바꿔 다시 검색해 주세요.</p>`; return; }
+      currentRestaurants.forEach((restaurant) => { if (restaurant.id) shownRestaurantIds.add(restaurant.id); });
       cards.innerHTML = currentRestaurants.map((restaurant, index) => restaurantCard(restaurant, index, area)).join("");
     } catch (error) {
       if (requestId !== searchRequestId) return;

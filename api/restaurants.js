@@ -13,6 +13,10 @@ function searchMenuName(menu) {
   return menu.replace("고기/구이", "고기").replace("면/국밥", "국밥").replace("카페/브런치", "브런치");
 }
 
+function cleanPlaceIds(value) {
+  return String(value ?? "").split(",").map((id) => cleanText(id).slice(0, 200)).filter(Boolean).slice(0, 30);
+}
+
 const BUDGET_FILTERS = {
   "1만원 이하": { min: 0, max: 10000 },
   "1~2만원": { min: 10000, max: 20000 },
@@ -117,6 +121,7 @@ module.exports = async function handler(req, res) {
   const budget = cleanText(req.query.budget).slice(0, 30);
   const purpose = cleanText(req.query.purpose).slice(0, 30);
   const waiting = cleanText(req.query.waiting).slice(0, 30);
+  const excludedPlaceIds = new Set(cleanPlaceIds(req.query.excludePlaceIds));
   const placesApiKey = process.env.GOOGLE_PLACES_API_KEY;
   const geminiApiKey = process.env.GEMINI_API_KEY;
   if (!area) return res.status(400).json({ error: "지역을 입력해 주세요." });
@@ -138,14 +143,14 @@ module.exports = async function handler(req, res) {
     if (!response.ok) { const errorPayload = await response.text(); throw new Error(`Google Places Text Search failed: ${response.status} ${errorPayload.slice(0, 240)}`); }
     const places = (await response.json()).places ?? [];
     const budgetMatchedPlaces = places
-      .filter((place) => place.displayName?.text && place.location)
+      .filter((place) => place.id && place.displayName?.text && place.location && !excludedPlaceIds.has(place.id))
       .map((place) => ({ place, budgetScore: budgetMatchScore(place, budget) }))
       .filter(({ budgetScore }) => budgetScore > 0)
       .sort((a, b) => b.budgetScore - a.budgetScore)
       .slice(0, 3)
       .map(({ place }) => place);
     const normalized = budgetMatchedPlaces.map((place) => ({
-      source: place, name: cleanText(place.displayName?.text), category: cleanText(place.primaryTypeDisplayName?.text) || "음식점", address: cleanText(place.formattedAddress), latitude: place.location.latitude, longitude: place.location.longitude,
+      source: place, id: place.id, name: cleanText(place.displayName?.text), category: cleanText(place.primaryTypeDisplayName?.text) || "음식점", address: cleanText(place.formattedAddress), latitude: place.location.latitude, longitude: place.location.longitude,
       googleMapsUri: place.googleMapsUri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.displayName?.text} ${place.formattedAddress || area}`)}`,
       rating: place.rating ?? null, userRatingCount: place.userRatingCount ?? null, price: priceLabel(place.priceLevel, place.priceRange), openNow: place.currentOpeningHours?.openNow,
       summary: cleanText(place.generativeSummary?.overview || place.editorialSummary?.text), types: place.types ?? [], reviews: compactReviews(place.reviews),
