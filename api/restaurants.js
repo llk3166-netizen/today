@@ -1,4 +1,4 @@
-const NAVER_SEARCH_URL = "https://openapi.naver.com/v1/search/local.json";
+const NAVER_API_HUB_LOCAL_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/search/v1/local";
 
 function cleanText(value = "") {
   return value
@@ -54,24 +54,28 @@ module.exports = async function restaurants(request, response) {
     return sendError(response, 400, "INVALID_AREA", "검색할 지역을 입력해 주세요.");
   }
 
-  const clientId = process.env.NAVER_SEARCH_CLIENT_ID;
-  const clientSecret = process.env.NAVER_SEARCH_CLIENT_SECRET;
+  // Prefer the API Hub names. The legacy names provide a migration path for
+  // existing deployments whose values are already API Hub credentials.
+  const clientId = process.env.NAVER_API_HUB_CLIENT_ID || process.env.NAVER_SEARCH_CLIENT_ID;
+  const clientSecret = process.env.NAVER_API_HUB_CLIENT_SECRET || process.env.NAVER_SEARCH_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    console.error("Naver Search API credentials are not configured.");
+    console.error("NAVER API HUB Search credentials are not configured.");
     return sendError(response, 500, "SERVER_CONFIGURATION_ERROR", "검색 서비스를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.");
   }
 
   try {
     const searchKeyword = `${area} ${menu} 맛집`;
-    const url = new URL(NAVER_SEARCH_URL);
+    const url = new URL(NAVER_API_HUB_LOCAL_SEARCH_URL);
     url.searchParams.set("query", searchKeyword);
-    url.searchParams.set("display", "20");
+    url.searchParams.set("display", "5");
+    url.searchParams.set("start", "1");
     url.searchParams.set("sort", "comment");
+    url.searchParams.set("format", "json");
     const naverResponse = await fetch(url, {
       headers: {
         Accept: "application/json",
-        "X-Naver-Client-Id": clientId,
-        "X-Naver-Client-Secret": clientSecret,
+        "X-NCP-APIGW-API-KEY-ID": clientId,
+        "X-NCP-APIGW-API-KEY": clientSecret,
       },
     });
 
